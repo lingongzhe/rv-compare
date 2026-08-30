@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ v['title'] }} - 二手房车聚合比价{% endblock %}
+{% block content %}
+<p class="muted" style="margin-bottom:12px;"><a href="/">← 返回列表</a></p>
+<div class="detail-grid">
+  <div class="card">
+    <h2 style="font-size:20px; margin-bottom:10px;">{{ v['title'] or '（无标题）' }}</h2>
+    <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:16px;">
+      <span style="color:#e74c3c; font-size:34px; font-weight:bold;">{{ v['price']|fmt_price }}<small style="font-size:15px;"> 万</small></span>
+      {% if v['new_price'] %}<span class="muted">新车含税价约 {{ v['new_price'] }} 万</span>{% endif %}
+    </div>
+    <div class="chips" style="margin:0 0 16px;">
+      {% for tg in (v['tags'] or '').split('、') %}{% if tg %}<span class="tag {{ 'org' if tg=='官方直营' }}" style="font-size:12px;">{{ tg }}</span>{% endif %}{% endfor %}
+    </div>
+    <div class="kv">
+      <div><b>上牌时间</b>{{ v['reg_date'] or '-' }}</div>
+      <div><b>行驶里程</b>{{ v['mileage_text'] or '-' }}</div>
+      <div><b>排放标准</b>{{ v['emission'] or '-' }}</div>
+      <div><b>过户次数</b>{{ v['transfer_count'] or '-' }}</div>
+      <div><b>使用性质</b>{{ v['usage_type'] or '-' }}</div>
+      <div><b>车辆所在地</b>{{ v['location'] or '-' }}</div>
+      <div><b>底盘</b>{{ v['chassis_brand'] or '-' }} {{ v['chassis_model'] or '' }}</div>
+      <div><b>品牌 / 类型</b>{{ v['brand'] or '-' }} / {{ v['rv_type'] or '-' }}</div>
+    </div>
+    {% set specs = v['specs_json']|specs_from_json %}
+    {% if specs %}
+    <h3 style="margin:18px 0 8px; font-size:15px;">车辆配置清单</h3>
+    <table>
+      {% for k, val in specs.items() %}
+      <tr><th style="width:110px;">{{ k }}</th><td>{{ val }}</td></tr>
+      {% endfor %}
+    </table>
+    {% endif %}
+    {% if v['description'] and not specs %}
+    <h3 style="margin:18px 0 8px; font-size:15px;">车辆描述</h3>
+    <p style="font-size:13px; line-height:1.8; color:#555; white-space:pre-wrap;">{{ v['description'] }}</p>
+    {% endif %}
+    <p class="muted" style="margin-top:16px;">
+      数据来源：{{ source_name(v['source']) }} · 抓取时间 {{ v['fetched_at'] }}<br>
+      原始链接：<a href="{{ v['url'] }}" target="_blank" style="color:#3a6ea5;">在{{ source_name(v['source']) }}查看原帖 →</a>
+    </p>
+  </div>
+
+  <div>
+    <div class="card" style="margin-bottom:18px;">
+      <h3 style="font-size:15px; margin-bottom:10px;">快速比价</h3>
+      {% if v['chassis_model'] %}
+      <p style="font-size:13px; line-height:1.7; color:#555;">
+        本车底盘型号为 <b>{{ v['chassis_model'] }}</b>，
+        点击下方按钮查看库内同底盘车源的价格分布，对比同年限行情。
+      </p>
+      <a class="btn" style="display:inline-block; margin-top:10px;"
+         href="/compare?model={{ v['chassis_model']|urlencode }}">查看同款比价 →</a>
+      {% else %}
+      <p class="muted">该车未识别出底盘型号，无法自动比价。</p>
+      {% endif %}
+    </div>
+
+    {% if similar %}
+    <div class="card">
+      <h3 style="font-size:15px; margin-bottom:10px;">同底盘其他车源（{{ similar|length }}）</h3>
+      {% for r in similar %}
+      <a href="/vehicle/{{ r['tid'] }}" style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #f0f2f5; font-size:13px;">
+        <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:10px;">
+          {{ r['title'] }}<br><span class="muted" style="font-size:12px;">{{ r['reg_year'] or '?' }}年 · {{ r['mileage_km']|fmt_mileage }}公里</span>
+        </span>
+        <b style="color:#e74c3c; flex-shrink:0;">{{ r['price']|fmt_price }}万</b>
+      </a>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

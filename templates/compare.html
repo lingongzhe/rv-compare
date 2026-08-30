@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}同款比价 - 二手房车聚合比价{% endblock %}
+{% block content %}
+<div class="card" style="margin-bottom:18px;">
+  <h3 style="font-size:16px; margin-bottom:6px;">同款比价 · 同年限价格对比</h3>
+  <p class="muted">按底盘型号聚合（同款房车通常以底盘型号区分），聚合房车猫与21世纪房车的车源。选择一个型号查看库内所有在售车源及价格统计。</p>
+  <div class="chips">
+    {% for g in groups[:24] %}
+    <a class="chip {{ 'on' if model==g['chassis_model'] }}"
+       href="/compare?model={{ g['chassis_model']|urlencode }}">
+      {{ g['chassis_model'] }} <span style="opacity:.6;">({{ g['n'] }})</span>
+    </a>
+    {% endfor %}
+    {% if groups|length > 24 %}<span class="muted" style="align-self:center;">…等共 {{ groups|length }} 个型号</span>{% endif %}
+  </div>
+</div>
+
+{% if model %}
+<div class="card" style="margin-bottom:18px;">
+  <form class="form-row" method="get">
+    <input type="hidden" name="model" value="{{ model }}">
+    <b style="font-size:15px;">{{ model }}</b>
+    <select name="brand">
+      <option value="">全部上装品牌</option>
+      {% for b in brands %}<option value="{{ b }}" {{ 'selected' if brand==b }}>{{ b }}</option>{% endfor %}
+    </select>
+    <select name="year">
+      <option value="">全部年份</option>
+      {% for y in years %}<option value="{{ y }}" {{ 'selected' if year==y|string }}>{{ y }}年上牌</option>{% endfor %}
+    </select>
+    <button type="submit">筛选</button>
+    <a class="btn btn-light" href="/compare?model={{ model|urlencode }}">清除筛选</a>
+  </form>
+
+  {% if stat %}
+  <div class="stat-cards" style="margin-top:16px;">
+    <div class="stat-card"><div class="num">{{ stat.n }}</div><div class="lbl">在售车源数</div></div>
+    <div class="stat-card"><div class="num" style="color:#e74c3c;">{{ stat.min }}</div><div class="lbl">最低挂牌价(万)</div></div>
+    <div class="stat-card"><div class="num" style="color:#e67e22;">{{ stat.avg }}</div><div class="lbl">平均挂牌价(万)</div></div>
+    <div class="stat-card"><div class="num" style="color:#1e3a5f;">{{ stat.max }}</div><div class="lbl">最高挂牌价(万)</div></div>
+  </div>
+  {% endif %}
+</div>
+
+{% if rows %}
+<div class="card">
+  <table>
+    <tr><th>车辆</th><th>来源</th><th>上装品牌</th><th>上牌年份</th><th>里程</th><th>过户</th><th>所在地</th><th style="text-align:right;">挂牌价(万)</th></tr>
+    {% for r in rows %}
+    <tr>
+      <td><a href="/vehicle/{{ r['tid'] }}" style="color:#1e3a5f;">{{ r['title'] }}</a></td>
+      <td><span class="tag src" style="background:{{ source_color(r['source']) }};">{{ source_name(r['source']) }}</span></td>
+      <td>{{ r['brand'] or '-' }}</td>
+      <td>{{ r['reg_year'] or '-' }}</td>
+      <td>{{ r['mileage_km']|fmt_mileage }}</td>
+      <td>{{ r['transfer_count'] or '-' }}</td>
+      <td>{{ r['location'] or '-' }}</td>
+      <td style="text-align:right; color:#e74c3c; font-weight:bold;">{{ r['price']|fmt_price }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  <p class="muted" style="margin-top:12px;">提示：同底盘型号、同年份上牌的车源可直接横向对比；挂牌价与成交价通常存在议价空间。</p>
+</div>
+{% else %}
+<div class="card empty">该条件下没有车源。</div>
+{% endif %}
+
+{% else %}
+<div class="card">
+  <h3 style="font-size:15px; margin-bottom:12px;">全部型号概览（按在售数量排序）</h3>
+  <table>
+    <tr><th>底盘型号</th><th>在售数</th><th>上装品牌数</th><th>年份范围</th><th>最低价</th><th>均价</th><th>最高价</th><th></th></tr>
+    {% for g in groups %}
+    <tr>
+      <td><b>{{ g['chassis_model'] }}</b></td>
+      <td>{{ g['n'] }}</td>
+      <td>{{ g['n_brand'] }}</td>
+      <td>{{ g['y1'] or '?' }}~{{ g['y2'] or '?' }}年</td>
+      <td>{{ g['min_price'] }}</td>
+      <td>{{ g['avg_price'] }}</td>
+      <td>{{ g['max_price'] }}</td>
+      <td><a class="btn btn-light" style="padding:4px 12px; font-size:12px;" href="/compare?model={{ g['chassis_model']|urlencode }}">对比</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+</div>
+{% endif %}
+{% endblock %}

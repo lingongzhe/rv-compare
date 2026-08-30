@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}二手房车聚合比价{% endblock %}</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:"Microsoft YaHei","PingFang SC",sans-serif; background:#f5f6f8; color:#333; }
+a { text-decoration:none; color:inherit; }
+.header { background:#1e3a5f; color:#fff; padding:0 24px; position:sticky; top:0; z-index:100; }
+.header-inner { max-width:1200px; margin:0 auto; display:flex; align-items:center; height:56px; gap:32px; }
+.logo { font-size:20px; font-weight:bold; }
+.logo span { color:#ffb454; }
+.nav { display:flex; gap:4px; }
+.nav a { padding:8px 16px; border-radius:6px; font-size:14px; color:#c8d6e5; }
+.nav a:hover { background:rgba(255,255,255,.12); color:#fff; }
+.nav a.on { background:rgba(255,255,255,.18); color:#fff; font-weight:bold; }
+.container { max-width:1200px; margin:20px auto; padding:0 16px; }
+.card { background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
+@media(max-width:900px){ .grid { grid-template-columns:repeat(2,1fr); } }
+@media(max-width:560px){ .grid { grid-template-columns:1fr; } }
+.vcard { background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); transition:transform .15s,box-shadow .15s; display:block; }
+.vcard:hover { transform:translateY(-3px); box-shadow:0 6px 16px rgba(0,0,0,.12); }
+.vcard .pic { height:150px; background:#e8ecf1 center/cover no-repeat; display:flex; align-items:flex-end; }
+.vcard .tags { padding:4px 6px; display:flex; gap:4px; flex-wrap:wrap; }
+.tag { background:rgba(30,58,95,.85); color:#fff; font-size:11px; padding:2px 6px; border-radius:3px; }
+.tag.org { background:rgba(230,126,34,.9); }
+.vcard .body { padding:10px 12px 14px; }
+.vcard h3 { font-size:14px; line-height:1.4; height:40px; overflow:hidden; margin-bottom:6px; }
+.vcard .meta { font-size:12px; color:#888; margin-bottom:6px; }
+.vcard .price { color:#e74c3c; font-size:20px; font-weight:bold; }
+.vcard .price small { font-size:12px; font-weight:normal; }
+.vcard .sub { font-size:12px; color:#666; }
+.form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+input[type=text],input[type=number],select { padding:8px 10px; border:1px solid #d5dbe3; border-radius:6px; font-size:13px; background:#fff; }
+button,.btn { padding:8px 18px; background:#1e3a5f; color:#fff; border:none; border-radius:6px; font-size:13px; cursor:pointer; }
+.btn-light { background:#eef1f5; color:#1e3a5f; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { padding:10px 8px; text-align:left; border-bottom:1px solid #eef0f3; }
+th { background:#f8f9fb; color:#555; font-weight:600; white-space:nowrap; }
+.pager { display:flex; gap:6px; justify-content:center; margin:24px 0; flex-wrap:wrap; }
+.pager a,.pager span { padding:6px 12px; border-radius:6px; background:#fff; border:1px solid #ddd; font-size:13px; }
+.pager span.cur { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+.stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:20px; }
+.stat-card { background:#fff; border-radius:10px; padding:18px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+.stat-card .num { font-size:28px; font-weight:bold; color:#1e3a5f; }
+.stat-card .lbl { font-size:12px; color:#888; margin-top:4px; }
+.bar-row { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:13px; }
+.bar-row .k { width:110px; text-align:right; color:#555; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar-row .bar { height:18px; background:linear-gradient(90deg,#3a6ea5,#1e3a5f); border-radius:3px; min-width:2px; }
+.bar-row .v { color:#888; font-size:12px; }
+.muted { color:#999; font-size:13px; }
+.chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+.chip { padding:6px 14px; background:#fff; border:1px solid #d5dbe3; border-radius:16px; font-size:13px; cursor:pointer; }
+.chip:hover,.chip.on { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+.detail-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:20px; }
+@media(max-width:860px){ .detail-grid { grid-template-columns:1fr; } }
+.kv { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #eef0f3; border-radius:8px; overflow:hidden; }
+.kv div { padding:10px 12px; border-bottom:1px solid #eef0f3; font-size:13px; }
+.kv div:nth-child(4n+1),.kv div:nth-child(4n+2) { background:#fafbfc; }
+.kv b { color:#1e3a5f; margin-right:6px; font-weight:normal; }
+.empty { text-align:center; padding:60px 0; color:#999; }
+</style>
+</head>
+<body>
+<div class="header"><div class="header-inner">
+  <div class="logo">房车比价通 <span>RV-Compare</span></div>
+  <div class="nav">
+    <a href="/" class="{{ 'on' if active=='index' }}">车源列表</a>
+    <a href="/compare" class="{{ 'on' if active=='compare' }}">同款比价</a>
+    <a href="/stats" class="{{ 'on' if active=='stats' }}">行情总览</a>
+  </div>
+</div></div>
+<div class="container">{% block content %}{% endblock %}</div>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# 环境
+.env
+.venv/
+venv/
+
+# 运行时数据（爬取的车源数据库不进版本库）
+data/*.db
+data/*.db-journal
+
+# 爬虫临时缓存/探测产物
+probe/
+*.html.tmp
+
+# 临时探测脚本（一次性调研用，不进版本库）
+_probe*.py
+_an*.py
+_check*.py
+_count*.py
+_pg*.py
+_sample*.py
+_verify*.py
+_fix*.py
+probe_*.py
+check_data.py
+crawl_log.txt
+
+# 系统
+.DS_Store
+Thumbs.db
