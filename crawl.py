@@ -88,6 +88,19 @@ def to_float(s):
     return float(m.group()) if m else None
 
 
+def parse_price(s):
+    """挂牌价规范化为万元：带'万'直接取值；纯数字且>=1000视为元；
+    结果超过500万视为异常输入返回 None"""
+    t = (s or "").replace(",", "")
+    m = re.search(r"[\d.]+", t)
+    if not m:
+        return None
+    v = float(m.group())
+    if "万" not in t and v >= 1000:
+        v /= 10000
+    return v if 0 < v <= 500 else None
+
+
 # ---------------- 列表页 ----------------
 
 def parse_list_page(html, page_url):
@@ -120,7 +133,7 @@ def parse_list_page(html, page_url):
         price = None
         pspan = a.find("span", class_="f18")
         if pspan:
-            price = to_float(pspan.get_text(strip=True))
+            price = parse_price(pspan.get_text(strip=True))
         # 标签
         tags = [t.get_text(strip=True) for t in a.find_all("span", class_="car_tag")]
         # 图片
@@ -178,7 +191,7 @@ def parse_detail(html):
     # 挂牌价
     p = soup.find("span", class_=re.compile(r"number-medium"))
     if p:
-        rec["price"] = to_float(p.get_text(strip=True))
+        rec["price"] = parse_price(p.get_text(strip=True))
 
     # 新车含税价（可能为空）
     m = re.search(r"新车含税价[:：]\s*([\d.]+)\s*万", soup.get_text())

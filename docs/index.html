@@ -254,16 +254,21 @@ function renderList(){
   else kws.style.display='none';
   var box=document.getElementById('gridList');
   if(!arr.length){box.innerHTML='<div class="empty">暂无符合条件的车源<div style="margin-top:10px"><button class="clearall" onclick="clearAll()">清除全部筛选</button></div></div>';return}
-  box.innerHTML=arr.map(function(r){
+  var slice=arr.slice(0,shown);
+  box.innerHTML=slice.map(function(r){
     var img=r.image_url?'<img src="'+r.image_url+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
     var tags=(r.tags||'').split('、').filter(Boolean).map(function(t){return ' · '+t}).join('');
+    var fav=isFav(r.tid);
     return '<div class="card" onclick="openDetail(\''+r.tid+'\')">'
-      +'<div class="thumb">'+srcTag(r)+img+'</div>'
+      +'<div class="thumb">'+srcTag(r)+dropTag(r)
+      +'<span class="favheart'+(fav?' on':'')+'" onclick="toggleFav(\''+r.tid+'\',event)">'+(fav?'❤':'♡')+'</span>'
+      +img+'</div>'
       +'<div class="body"><div class="t">'+r.title+'</div>'
       +'<div class="meta">'+(r.brand||'')+(r.location?' · '+r.location:'')+tags+'</div>'
       +'<div class="btm"><span class="price">'+fmtP(r.price)+'</span><span class="sale">'+flat(rangeYear(r))+'年 · '+fmtM(r.mileage_km)+'</span></div>'
       +'</div></div>';
-  }).join('');
+  }).join('')
+  +(arr.length>shown?'<button class="chip more" onclick="shown+='+PAGE+';renderList()">加载更多（还有 '+(arr.length-shown)+' 台）</button>':'');
 }
 
 function openDetail(tid){

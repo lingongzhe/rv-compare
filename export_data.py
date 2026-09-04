@@ -29,9 +29,9 @@ def main():
     for r in rows:
         rec = {f: r[f] for f in FIELDS}
         rec["first_price"] = first_price.get(r["tid"])
-        # 描述太长会撑大包体，截断到前600字
-        if rec.get("description") and len(rec["description"]) > 600:
-            rec["description"] = rec["description"][:600] + "…"
+        # 描述太长会撑大包体，截断到前300字（完整配置在本地应用详情页查看）
+        if rec.get("description") and len(rec["description"]) > 300:
+            rec["description"] = rec["description"][:300] + "…"
         out.append(rec)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
