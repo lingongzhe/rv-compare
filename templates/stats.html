@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block title %}行情总览 - 二手房车聚合比价{% endblock %}
 {% block content %}
+<h1 class="page-title">📊 行情总览</h1>
+<p class="page-sub">库内车源的整体价格与分布画像，每轮爬虫刷新后自动更新。</p>
+
 <div class="stat-cards">
   <div class="stat-card"><div class="num">{{ s.total }}</div><div class="lbl">库内车源总数</div></div>
   <div class="stat-card"><div class="num">{{ s.by_brand|length }}</div><div class="lbl">上装品牌数</div></div>
   <div class="stat-card"><div class="num">{{ s.by_chassis|length }}</div><div class="lbl">底盘品牌数</div></div>
   <div class="stat-card"><div class="num">{{ s.by_year|length }}</div><div class="lbl">覆盖年份数</div></div>
+  <div class="stat-card"><div class="num" style="color:var(--danger);">{{ s.n_dropped }}</div><div class="lbl">已监测到降价车源</div></div>
 </div>
 
 <div class="detail-grid">
@@ -15,7 +19,7 @@
     {% for b in s.price_hist %}
     <div class="bar-row">
       <span class="k">{{ b.k }}</span>
-      <span class="bar" style="width:{{ (b.n / maxn * 320)|int }}px;"></span>
+      <span class="bar" style="width:{{ (b.n / maxn * 60)|int }}%;"></span>
       <span class="v">{{ b.n }} 条</span>
     </div>
     {% endfor %}
@@ -27,17 +31,17 @@
     {% for b in s.by_type %}
     <div class="bar-row">
       <span class="k">{{ b.k }}</span>
-      <span class="bar" style="width:{{ (b.n / maxt * 320)|int }}px; background:linear-gradient(90deg,#e67e22,#d35400);"></span>
+      <span class="bar" style="width:{{ (b.n / maxt * 60)|int }}%; background:linear-gradient(90deg,#f0a04b,#e67e22);"></span>
       <span class="v">{{ b.n }} 条</span>
     </div>
     {% endfor %}
-    <h3 style="font-size:15px; margin:22px 0 14px;">底盘品牌分布 TOP15</h3>
-    {% set maxc = s.by_chassis|map(attribute='n')|max or 1 %}
-    {% for b in s.by_chassis %}
+    <h3 style="font-size:15px; margin:22px 0 14px;">各数据源在售车源</h3>
+    {% set maxs = s.by_source|map(attribute='n')|max or 1 %}
+    {% for b in s.by_source %}
     <div class="bar-row">
-      <span class="k">{{ b.k }}</span>
-      <span class="bar" style="width:{{ (b.n / maxc * 320)|int }}px; background:linear-gradient(90deg,#27ae60,#1e8449);"></span>
-      <span class="v">{{ b.n }} 条</span>
+      <span class="k">{{ source_name(b.k) }}</span>
+      <span class="bar" style="width:{{ (b.n / maxs * 60)|int }}%; background:linear-gradient(90deg,#4fae7c,#2e9e5b);"></span>
+      <span class="v">{{ b.n }} 条 · 均价 {{ b.avg_p }}万</span>
     </div>
     {% endfor %}
   </div>
@@ -45,23 +49,35 @@
 
 <div class="detail-grid" style="margin-top:18px;">
   <div class="card">
-    <h3 style="font-size:15px; margin-bottom:12px;">各年份上牌均价（同年限行情参考）</h3>
-    <table>
-      <tr><th>上牌年份</th><th>车源数</th><th>平均挂牌价(万)</th></tr>
-      {% for b in s.by_year %}
-      <tr><td>{{ b.k }}年</td><td>{{ b.n }}</td><td style="color:#e74c3c; font-weight:bold;">{{ b.avg_p }}</td></tr>
-      {% endfor %}
-    </table>
+    <h3 style="font-size:15px; margin-bottom:14px;">底盘品牌分布 TOP15</h3>
+    {% set maxc = s.by_chassis|map(attribute='n')|max or 1 %}
+    {% for b in s.by_chassis %}
+    <div class="bar-row">
+      <span class="k">{{ b.k }}</span>
+      <span class="bar" style="width:{{ (b.n / maxc * 60)|int }}%; background:linear-gradient(90deg,#27ae60,#1e8449);"></span>
+      <span class="v">{{ b.n }} 条</span>
+    </div>
+    {% endfor %}
   </div>
 
   <div class="card">
-    <h3 style="font-size:15px; margin-bottom:12px;">上装品牌 TOP20（含均价）</h3>
-    <table>
-      <tr><th>品牌</th><th>车源数</th><th>平均挂牌价(万)</th></tr>
-      {% for b in s.by_brand %}
-      <tr><td>{{ b.k }}</td><td>{{ b.n }}</td><td>{{ b.avg_p }}</td></tr>
+    <h3 style="font-size:15px; margin-bottom:12px;">各年份上牌均价（同年限行情参考）</h3>
+    <div class="table-wrap"><table>
+      <tr><th>上牌年份</th><th>车源数</th><th>平均挂牌价(万)</th></tr>
+      {% for b in s.by_year %}
+      <tr><td>{{ b.k }}年</td><td>{{ b.n }}</td><td style="color:var(--danger); font-weight:bold;">{{ b.avg_p }}</td></tr>
       {% endfor %}
-    </table>
+    </table></div>
   </div>
+</div>
+
+<div class="card" style="margin-top:18px;">
+  <h3 style="font-size:15px; margin-bottom:12px;">上装品牌 TOP20（含均价）</h3>
+  <div class="table-wrap"><table>
+    <tr><th>品牌</th><th>车源数</th><th>平均挂牌价(万)</th></tr>
+    {% for b in s.by_brand %}
+    <tr><td>{{ b.k }}</td><td>{{ b.n }}</td><td>{{ b.avg_p }}</td></tr>
+    {% endfor %}
+  </table></div>
 </div>
 {% endblock %}

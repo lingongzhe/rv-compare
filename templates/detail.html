@@ -4,10 +4,14 @@
 <p class="muted" style="margin-bottom:12px;"><a href="/">← 返回列表</a></p>
 <div class="detail-grid">
   <div class="card">
+    {% if v['image_url'] %}
+    <div class="detail-pic"><img src="{{ v['image_url'] }}" alt=""></div>
+    {% endif %}
     <h2 style="font-size:20px; margin-bottom:10px;">{{ v['title'] or '（无标题）' }}</h2>
-    <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:16px;">
-      <span style="color:#e74c3c; font-size:34px; font-weight:bold;">{{ v['price']|fmt_price }}<small style="font-size:15px;"> 万</small></span>
+    <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
+      <span style="color:var(--danger); font-size:34px; font-weight:bold;">{{ v['price']|fmt_price }}<small style="font-size:15px;"> 万</small></span>
       {% if v['new_price'] %}<span class="muted">新车含税价约 {{ v['new_price'] }} 万</span>{% endif %}
+      <span class="tag" style="background:{{ source_color(v['source']) }}; font-size:12px; padding:3px 10px;">{{ source_name(v['source']) }}</span>
     </div>
     <div class="chips" style="margin:0 0 16px;">
       {% for tg in (v['tags'] or '').split('、') %}{% if tg %}<span class="tag {{ 'org' if tg=='官方直营' }}" style="font-size:12px;">{{ tg }}</span>{% endif %}{% endfor %}
@@ -22,22 +26,41 @@
       <div><b>底盘</b>{{ v['chassis_brand'] or '-' }} {{ v['chassis_model'] or '' }}</div>
       <div><b>品牌 / 类型</b>{{ v['brand'] or '-' }} / {{ v['rv_type'] or '-' }}</div>
     </div>
+
+    {% if history|length >= 1 %}
+    <h3 style="margin:18px 0 4px; font-size:15px;">价格记录（{{ history|length }} 次抓取）</h3>
+    {% set hmax = history|map(attribute='price')|max or 1 %}
+    {% set hmin = history|map(attribute='price')|min or 0 %}
+    {% set span = (hmax - hmin) if hmax > hmin else hmax or 1 %}
+    <div class="hist">
+      {% for h in history %}
+      <div class="pt {{ 'down' if loop.index0 > 0 and h['price'] < history[loop.index0-1]['price'] }}">
+        <span class="tip">{{ h['price']|fmt_price }}</span>
+        <div class="col" style="height:{{ (30 + (h['price'] - hmin) / span * 65)|int }}%;"></div>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="hist-x">
+      {% for h in history %}<span>{{ h['captured_at'][:10] }}</span>{% endfor %}
+    </div>
+    {% endif %}
+
     {% set specs = v['specs_json']|specs_from_json %}
     {% if specs %}
     <h3 style="margin:18px 0 8px; font-size:15px;">车辆配置清单</h3>
-    <table>
+    <div class="table-wrap"><table>
       {% for k, val in specs.items() %}
       <tr><th style="width:110px;">{{ k }}</th><td>{{ val }}</td></tr>
       {% endfor %}
-    </table>
+    </table></div>
     {% endif %}
     {% if v['description'] and not specs %}
     <h3 style="margin:18px 0 8px; font-size:15px;">车辆描述</h3>
-    <p style="font-size:13px; line-height:1.8; color:#555; white-space:pre-wrap;">{{ v['description'] }}</p>
+    <p style="font-size:13px; line-height:1.8; color:var(--muted); white-space:pre-wrap;">{{ v['description'] }}</p>
     {% endif %}
     <p class="muted" style="margin-top:16px;">
       数据来源：{{ source_name(v['source']) }} · 抓取时间 {{ v['fetched_at'] }}<br>
-      原始链接：<a href="{{ v['url'] }}" target="_blank" style="color:#3a6ea5;">在{{ source_name(v['source']) }}查看原帖 →</a>
+      原始链接：<a href="{{ v['url'] }}" target="_blank" rel="noopener" style="color:var(--primary);">在{{ source_name(v['source']) }}查看原帖 →</a>
     </p>
   </div>
 
@@ -45,7 +68,7 @@
     <div class="card" style="margin-bottom:18px;">
       <h3 style="font-size:15px; margin-bottom:10px;">快速比价</h3>
       {% if v['chassis_model'] %}
-      <p style="font-size:13px; line-height:1.7; color:#555;">
+      <p style="font-size:13px; line-height:1.7; color:var(--muted);">
         本车底盘型号为 <b>{{ v['chassis_model'] }}</b>，
         点击下方按钮查看库内同底盘车源的价格分布，对比同年限行情。
       </p>
@@ -60,11 +83,11 @@
     <div class="card">
       <h3 style="font-size:15px; margin-bottom:10px;">同底盘其他车源（{{ similar|length }}）</h3>
       {% for r in similar %}
-      <a href="/vehicle/{{ r['tid'] }}" style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid #f0f2f5; font-size:13px;">
+      <a href="/vehicle/{{ r['tid'] }}" style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;">
         <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:10px;">
-          {{ r['title'] }}<br><span class="muted" style="font-size:12px;">{{ r['reg_year'] or '?' }}年 · {{ r['mileage_km']|fmt_mileage }}公里</span>
+          {{ r['title'] }}<br><span class="muted" style="font-size:12px;">{{ r['reg_year'] or '?' }}年 · {{ r['mileage_km']|fmt_mileage }}公里 · {{ source_name(r['source']) }}</span>
         </span>
-        <b style="color:#e74c3c; flex-shrink:0;">{{ r['price']|fmt_price }}万</b>
+        <b style="color:var(--danger); flex-shrink:0;">{{ r['price']|fmt_price }}万</b>
       </a>
       {% endfor %}
     </div>

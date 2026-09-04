@@ -312,6 +312,7 @@ def main():
         items = crawl_list(session, args.pages)
         print(f"\n列表共采集 {len(items)} 条")
         # 列表摘要先入库（保证即使详情失败也有基础数据）
+        n_new = n_upd = 0
         for it in items:
             if not database.vehicle_exists(it["tid"]):
                 database.upsert_vehicle({
@@ -324,6 +325,15 @@ def main():
                     "image_url": it["image_url"],
                     "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                 })
+                n_new += 1
+            else:
+                # 已入库车源刷新挂牌价等摘要字段（价格变化会记入 price_history）
+                database.update_summary({
+                    "tid": it["tid"], "price": it["price"],
+                    "mileage_text": it["mileage_text"], "location": it["city"],
+                })
+                n_upd += 1
+        print(f"列表处理完成: 新增 {n_new}，刷新 {n_upd}")
         print(f"当前库内共 {database.count_vehicles()} 条")
         if not args.no_details:
             crawl_details(session, items)

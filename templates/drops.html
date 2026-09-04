@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}降价榜 - 二手房车聚合比价{% endblock %}
+{% block content %}
+<h1 class="page-title">📉 降价榜</h1>
+<p class="page-sub">对比每台车最近两次抓取到的挂牌价，降幅从大到小排序。每次运行爬虫后自动更新。</p>
+
+{% if rows %}
+<div class="grid">
+  {% for r in rows %}
+  <div class="vcard">
+    <a href="/vehicle/{{ r['tid'] }}" class="pic">
+      {% if r['image_url'] %}
+      <img src="{{ r['image_url'] }}" alt="" loading="lazy">
+      {% else %}
+      <div class="noimg">🚐</div>
+      {% endif %}
+      <div class="tags">
+        <span class="tag drop">↓ {{ r['drop_pct'] }}%（{{ r['drop_amount'] }}万）</span>
+        <span class="tag" style="background:{{ source_color(r['source']) }};">{{ source_name(r['source']) }}</span>
+      </div>
+    </a>
+    <div class="body">
+      <a href="/vehicle/{{ r['tid'] }}">
+        <h3>{{ r['title'] or '（无标题）' }}</h3>
+        <div class="meta">{{ r['reg_year'] or '?' }}年上牌 · {{ r['mileage_km']|fmt_mileage }}公里 · {{ r['location'] or '-' }}</div>
+        <div class="price-row">
+          <span class="price">{{ r['price']|fmt_price }}<small> 万</small>
+            <span class="was">原 {{ r['old_price']|fmt_price }}万</span>
+          </span>
+        </div>
+        <div class="sub">{{ r['brand'] or '未知品牌' }} · 降价记录于 {{ r['old_captured_at'][:10] }} 之后</div>
+      </a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="card empty">
+  还没有检测到价格变化。<br><br>
+  <span class="muted">价格历史从收录起开始积累：多跑几次爬虫（如 <code>python crawl_21rv.py --pages 5</code>），
+  当某台车的挂牌价较上次抓取下降时就会出现在这里。</span>
+</div>
+{% endif %}
+{% endblock %}

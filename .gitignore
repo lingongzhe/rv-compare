@@ -28,7 +28,11 @@ _verify*.py
 _fix*.py
 probe_*.py
 check_data.py
-crawl_log.txt
+crawl_log*.txt
+
+# 部署凭据与日志（本地，勿提交）
+deploy/.gh_token
+deploy/refresh.log
 
 # 系统
 .DS_Store

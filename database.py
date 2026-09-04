@@ -35,6 +35,19 @@ CREATE TABLE IF NOT EXISTS vehicles (
 CREATE INDEX IF NOT EXISTS idx_vehicles_brand ON vehicles(brand);
 CREATE INDEX IF NOT EXISTS idx_vehicles_chassis ON vehicles(chassis_model);
 CREATE INDEX IF NOT EXISTS idx_vehicles_year ON vehicles(reg_year);
+CREATE INDEX IF NOT EXISTS idx_vehicles_source ON vehicles(source);
+CREATE INDEX IF NOT EXISTS idx_vehicles_type ON vehicles(rv_type);
+CREATE INDEX IF NOT EXISTS idx_vehicles_price ON vehicles(price);
+
+-- 价格历史：每次爬取发现挂牌价变化（或首次入库）时记录一条
+CREATE TABLE IF NOT EXISTS price_history (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    tid         TEXT NOT NULL,
+    price       REAL,
+    captured_at TEXT,
+    UNIQUE(tid, captured_at)
+);
+CREATE INDEX IF NOT EXISTS idx_price_history_tid ON price_history(tid);
 """
 
 
@@ -48,6 +61,12 @@ def get_conn():
 def init_db():
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+        # 价格历史基线回填：已有车源且无任何历史记录时，以当前挂牌价作为首次收录价
+        conn.execute(
+            "INSERT OR IGNORE INTO price_history(tid, price, captured_at) "
+            "SELECT tid, price, datetime('now','localtime') FROM vehicles "
+            "WHERE price IS NOT NULL "
+            "AND tid NOT IN (SELECT DISTINCT tid FROM price_history)")
 
 
 def vehicle_exists(tid):
@@ -83,7 +102,44 @@ def upsert_vehicle(rec):
         upd=",".join(f"{c}=excluded.{c}" for c in COLUMNS if c != "tid"),
     )
     with get_conn() as conn:
+        old = conn.execute(
+            "SELECT price FROM vehicles WHERE tid=?", (rec.get("tid"),)).fetchone()
         conn.execute(sql, vals)
+        _record_price(conn, rec.get("tid"), rec.get("price"),
+                      old["price"] if old else None)
+
+
+def _record_price(conn, tid, price, old_price):
+    """价格变化（或首次入库）时写一条价格历史"""
+    if price is None:
+        return
+    if old_price is not None and abs((old_price or 0) - price) < 1e-9:
+        return
+    from datetime import datetime
+    conn.execute(
+        "INSERT OR IGNORE INTO price_history(tid, price, captured_at) VALUES (?,?,?)",
+        (tid, price, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+
+
+def update_summary(rec):
+    """部分更新：只刷新爬虫提供的非空字段（用于对已入库记录刷新挂牌价等），
+    避免整行 upsert 把详情字段覆盖为 NULL"""
+    if not rec.get("tid"):
+        return
+    sets = {k: v for k, v in rec.items() if k != "tid" and v not in (None, "")}
+    if not sets:
+        return
+    old = None
+    with get_conn() as conn:
+        old = conn.execute(
+            "SELECT price FROM vehicles WHERE tid=?", (rec["tid"],)).fetchone()
+        if old is None:
+            return
+        sql = "UPDATE vehicles SET " + ",".join(f"{k}=?" for k in sets) + \
+              " WHERE tid=?"
+        conn.execute(sql, list(sets.values()) + [rec["tid"]])
+        _record_price(conn, rec["tid"], sets.get("price", old["price"]),
+                      old["price"])
 
 
 def count_vehicles():
@@ -118,10 +174,13 @@ def query_vehicles(f, page=1, per_page=24):
         "price_desc": "price DESC",
         "year_desc": "reg_year DESC, price ASC",
         "mileage_asc": "mileage_km ASC",
-    }.get(f.get("sort"), "CAST(tid AS INTEGER) DESC")
+        "fetched": "fetched_at DESC",
+    }.get(f.get("sort"), "fetched_at DESC, tid DESC")
     total_sql = f"SELECT COUNT(*) c FROM vehicles {where_sql}"
-    sql = (f"SELECT * FROM vehicles {where_sql} ORDER BY {order} "
-           f"LIMIT ? OFFSET ?")
+    sql = (f"SELECT vehicles.*, fp.first_price FROM vehicles {where_sql} "
+           f"LEFT JOIN (SELECT tid, MIN(price) AS first_price FROM price_history "
+           f"GROUP BY tid) fp ON fp.tid = vehicles.tid "
+           f"ORDER BY {order} LIMIT ? OFFSET ?")
     with get_conn() as conn:
         total = conn.execute(total_sql, args).fetchone()["c"]
         rows = conn.execute(sql, args + [per_page, (page - 1) * per_page]).fetchall()
@@ -131,6 +190,50 @@ def query_vehicles(f, page=1, per_page=24):
 def get_vehicle(tid):
     with get_conn() as conn:
         return conn.execute("SELECT * FROM vehicles WHERE tid=?", (tid,)).fetchone()
+
+
+def get_price_history(tid):
+    with get_conn() as conn:
+        return conn.execute(
+            "SELECT price, captured_at FROM price_history WHERE tid=? "
+            "ORDER BY captured_at", (tid,)).fetchall()
+
+
+def recent_price_drops(limit=50):
+    """最近降价的车源：取每台车最近两次价格记录，前次高于后次视为降价"""
+    with get_conn() as conn:
+        return conn.execute("""
+            SELECT v.*, h.old_price, h.old_captured_at,
+                   ROUND(h.old_price - v.price, 1) AS drop_amount,
+                   ROUND((h.old_price - v.price) * 100.0 / h.old_price, 1) AS drop_pct
+            FROM (
+                SELECT tid,
+                       MAX(CASE WHEN rn = 2 THEN price END) AS old_price,
+                       MAX(CASE WHEN rn = 2 THEN captured_at END) AS old_captured_at
+                FROM (
+                    SELECT tid, price, captured_at,
+                           ROW_NUMBER() OVER (
+                               PARTITION BY tid ORDER BY captured_at DESC) AS rn
+                    FROM price_history WHERE price IS NOT NULL
+                )
+                WHERE rn <= 2
+                GROUP BY tid
+                HAVING COUNT(*) = 2
+            ) h
+            JOIN vehicles v ON v.tid = h.tid
+            WHERE v.price IS NOT NULL AND h.old_price > v.price
+            ORDER BY drop_pct DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+
+
+def get_vehicles_by_ids(tids):
+    if not tids:
+        return []
+    ph = ",".join("?" * len(tids))
+    with get_conn() as conn:
+        return conn.execute(
+            f"SELECT * FROM vehicles WHERE tid IN ({ph})", tids).fetchall()
 
 
 def filter_options():
@@ -200,6 +303,16 @@ def stats_overview():
             "WHERE reg_year IS NOT NULL GROUP BY reg_year ORDER BY k").fetchall()
         prices = conn.execute(
             "SELECT price FROM vehicles WHERE price IS NOT NULL").fetchall()
+        n_dropped = conn.execute("""
+            SELECT COUNT(*) c FROM (
+                SELECT tid FROM price_history GROUP BY tid
+                HAVING MIN(price) > MAX(price)
+            )""").fetchone()["c"]
+        n_with_history = conn.execute(
+            "SELECT COUNT(DISTINCT tid) c FROM price_history").fetchone()["c"]
+        by_source = conn.execute(
+            "SELECT source k, COUNT(*) n, ROUND(AVG(price),1) avg_p FROM vehicles "
+            "WHERE price IS NOT NULL GROUP BY source ORDER BY n DESC").fetchall()
     bins = [(0, 10), (10, 20), (20, 30), (30, 50), (50, 100), (100, 10**9)]
     price_hist = []
     for lo, hi in bins:
@@ -211,4 +324,7 @@ def stats_overview():
         "by_brand": by_brand, "by_type": by_type,
         "by_chassis": by_chassis, "by_year": by_year,
         "price_hist": price_hist,
+        "n_dropped": n_dropped,
+        "n_with_history": n_with_history,
+        "by_source": by_source,
     }

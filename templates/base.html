@@ -4,75 +4,286 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{% block title %}二手房车聚合比价{% endblock %}</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>">
 <style>
+:root {
+  --bg: #f2f4f8; --card: #ffffff; --text: #26303c; --muted: #7b8595;
+  --line: #e6eaf0; --primary: #2456a6; --primary-2: #3a78d8;
+  --accent: #ffb454; --danger: #e04b3a; --ok: #2e9e5b; --warn: #e67e22;
+  --shadow: 0 1px 3px rgba(20,35,60,.07), 0 4px 14px rgba(20,35,60,.05);
+  --shadow-h: 0 6px 22px rgba(20,35,60,.14);
+  --radius: 12px;
+}
+html[data-theme="dark"] {
+  --bg: #141a23; --card: #1d2530; --text: #dde5ee; --muted: #8d99a9;
+  --line: #2b3644; --primary: #5b93e8; --primary-2: #7fb0f5;
+  --shadow: 0 1px 3px rgba(0,0,0,.35); --shadow-h: 0 6px 22px rgba(0,0,0,.5);
+}
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:"Microsoft YaHei","PingFang SC",sans-serif; background:#f5f6f8; color:#333; }
+html { scroll-behavior:smooth; }
+body { font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+  background:var(--bg); color:var(--text); line-height:1.55;
+  transition:background .25s,color .25s; }
 a { text-decoration:none; color:inherit; }
-.header { background:#1e3a5f; color:#fff; padding:0 24px; position:sticky; top:0; z-index:100; }
-.header-inner { max-width:1200px; margin:0 auto; display:flex; align-items:center; height:56px; gap:32px; }
-.logo { font-size:20px; font-weight:bold; }
-.logo span { color:#ffb454; }
-.nav { display:flex; gap:4px; }
-.nav a { padding:8px 16px; border-radius:6px; font-size:14px; color:#c8d6e5; }
+img { display:block; }
+
+/* ---------- 顶栏 ---------- */
+.header { background:linear-gradient(120deg,#1d3f78 0%,#2456a6 55%,#3a78d8 100%);
+  color:#fff; position:sticky; top:0; z-index:100; box-shadow:0 2px 12px rgba(20,40,80,.25); }
+.header-inner { max-width:1240px; margin:0 auto; display:flex; align-items:center;
+  height:60px; gap:26px; padding:0 20px; }
+.logo { font-size:19px; font-weight:bold; letter-spacing:.5px; display:flex;
+  align-items:center; gap:8px; white-space:nowrap; }
+.logo .emoji { font-size:24px; }
+.logo span { color:var(--accent); font-size:12px; font-weight:normal; opacity:.9; }
+.nav { display:flex; gap:2px; flex:1; }
+.nav a { padding:8px 14px; border-radius:8px; font-size:14px; color:#c8d6ee;
+  transition:.15s; white-space:nowrap; }
 .nav a:hover { background:rgba(255,255,255,.12); color:#fff; }
-.nav a.on { background:rgba(255,255,255,.18); color:#fff; font-weight:bold; }
-.container { max-width:1200px; margin:20px auto; padding:0 16px; }
-.card { background:#fff; border-radius:10px; padding:20px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
-.grid { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; }
-@media(max-width:900px){ .grid { grid-template-columns:repeat(2,1fr); } }
-@media(max-width:560px){ .grid { grid-template-columns:1fr; } }
-.vcard { background:#fff; border-radius:10px; overflow:hidden; box-shadow:0 1px 4px rgba(0,0,0,.06); transition:transform .15s,box-shadow .15s; display:block; }
-.vcard:hover { transform:translateY(-3px); box-shadow:0 6px 16px rgba(0,0,0,.12); }
-.vcard .pic { height:150px; background:#e8ecf1 center/cover no-repeat; display:flex; align-items:flex-end; }
-.vcard .tags { padding:4px 6px; display:flex; gap:4px; flex-wrap:wrap; }
-.tag { background:rgba(30,58,95,.85); color:#fff; font-size:11px; padding:2px 6px; border-radius:3px; }
-.tag.org { background:rgba(230,126,34,.9); }
-.vcard .body { padding:10px 12px 14px; }
-.vcard h3 { font-size:14px; line-height:1.4; height:40px; overflow:hidden; margin-bottom:6px; }
-.vcard .meta { font-size:12px; color:#888; margin-bottom:6px; }
-.vcard .price { color:#e74c3c; font-size:20px; font-weight:bold; }
+.nav a.on { background:rgba(255,255,255,.2); color:#fff; font-weight:600; }
+.theme-btn { background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.25);
+  color:#fff; width:36px; height:36px; border-radius:50%; cursor:pointer; font-size:16px;
+  display:flex; align-items:center; justify-content:center; transition:.15s; flex-shrink:0; }
+.theme-btn:hover { background:rgba(255,255,255,.28); }
+
+.container { max-width:1240px; margin:22px auto; padding:0 20px; }
+.card { background:var(--card); border-radius:var(--radius); padding:20px;
+  box-shadow:var(--shadow); transition:background .25s; }
+.page-title { font-size:22px; font-weight:700; margin-bottom:4px; }
+.page-sub { color:var(--muted); font-size:13px; margin-bottom:18px; }
+
+/* ---------- 筛选 ---------- */
+.filters { display:flex; flex-direction:column; gap:10px; }
+.filters .form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+input[type=text],input[type=number],select { padding:9px 12px; border:1px solid var(--line);
+  border-radius:8px; font-size:13px; background:var(--bg); color:var(--text); outline:none;
+  transition:border-color .15s, box-shadow .15s; }
+input:focus,select:focus { border-color:var(--primary-2);
+  box-shadow:0 0 0 3px rgba(58,120,216,.15); }
+button,.btn { padding:9px 20px; background:linear-gradient(135deg,var(--primary),var(--primary-2));
+  color:#fff; border:none; border-radius:8px; font-size:13px; cursor:pointer; transition:.15s; }
+button:hover,.btn:hover { filter:brightness(1.1); transform:translateY(-1px); }
+.btn-light { background:var(--bg); color:var(--primary); border:1px solid var(--line); }
+.btn-sm { padding:4px 12px; font-size:12px; }
+
+/* ---------- 车源卡片 ---------- */
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(265px,1fr)); gap:16px; }
+.vcard { background:var(--card); border-radius:var(--radius); overflow:hidden;
+  box-shadow:var(--shadow); transition:transform .18s,box-shadow .18s;
+  display:flex; flex-direction:column; position:relative; }
+.vcard:hover { transform:translateY(-4px); box-shadow:var(--shadow-h); }
+.vcard .pic { height:160px; background:linear-gradient(135deg,#dfe5ec,#cfd8e4);
+  position:relative; overflow:hidden; }
+html[data-theme="dark"] .vcard .pic { background:linear-gradient(135deg,#2a3542,#222c38); }
+.vcard .pic img { width:100%; height:100%; object-fit:cover; transition:transform .3s; }
+.vcard:hover .pic img { transform:scale(1.05); }
+.vcard .pic .noimg { width:100%; height:100%; display:flex; align-items:center;
+  justify-content:center; font-size:44px; opacity:.5; }
+.pic .tags { position:absolute; left:0; bottom:0; padding:6px 8px; display:flex;
+  gap:4px; flex-wrap:wrap; }
+.tag { background:rgba(20,35,60,.82); color:#fff; font-size:11px; padding:2px 7px;
+  border-radius:4px; backdrop-filter:blur(4px); }
+.tag.org { background:rgba(230,126,34,.92); }
+.tag.drop { background:rgba(224,75,58,.94); }
+.fav-btn { position:absolute; top:8px; right:8px; width:32px; height:32px;
+  border-radius:50%; border:none; background:rgba(255,255,255,.85); cursor:pointer;
+  font-size:16px; line-height:1; display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,.2); transition:.15s; }
+.fav-btn:hover { transform:scale(1.15); background:#fff; }
+.cmp-check { position:absolute; top:8px; left:8px; background:rgba(255,255,255,.88);
+  border-radius:6px; padding:4px 8px; font-size:12px; display:flex; align-items:center;
+  gap:4px; cursor:pointer; user-select:none; box-shadow:0 2px 6px rgba(0,0,0,.15); }
+.vcard .body { padding:12px 14px 14px; flex:1; display:flex; flex-direction:column; }
+.vcard h3 { font-size:14px; line-height:1.45; height:41px; overflow:hidden;
+  margin-bottom:6px; font-weight:600; }
+.vcard .meta { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.vcard .price-row { margin-top:auto; display:flex; align-items:baseline;
+  justify-content:space-between; }
+.vcard .price { color:var(--danger); font-size:21px; font-weight:700; }
 .vcard .price small { font-size:12px; font-weight:normal; }
-.vcard .sub { font-size:12px; color:#666; }
-.form-row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-input[type=text],input[type=number],select { padding:8px 10px; border:1px solid #d5dbe3; border-radius:6px; font-size:13px; background:#fff; }
-button,.btn { padding:8px 18px; background:#1e3a5f; color:#fff; border:none; border-radius:6px; font-size:13px; cursor:pointer; }
-.btn-light { background:#eef1f5; color:#1e3a5f; }
+.vcard .price .was { font-size:12px; color:var(--muted); font-weight:normal;
+  text-decoration:line-through; margin-left:6px; }
+.vcard .sub { font-size:12px; color:var(--muted); margin-top:4px; }
+
+/* ---------- 表格 ---------- */
+.table-wrap { overflow-x:auto; }
 table { width:100%; border-collapse:collapse; font-size:13px; }
-th,td { padding:10px 8px; text-align:left; border-bottom:1px solid #eef0f3; }
-th { background:#f8f9fb; color:#555; font-weight:600; white-space:nowrap; }
-.pager { display:flex; gap:6px; justify-content:center; margin:24px 0; flex-wrap:wrap; }
-.pager a,.pager span { padding:6px 12px; border-radius:6px; background:#fff; border:1px solid #ddd; font-size:13px; }
-.pager span.cur { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
-.stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:14px; margin-bottom:20px; }
-.stat-card { background:#fff; border-radius:10px; padding:18px; text-align:center; box-shadow:0 1px 4px rgba(0,0,0,.06); }
-.stat-card .num { font-size:28px; font-weight:bold; color:#1e3a5f; }
-.stat-card .lbl { font-size:12px; color:#888; margin-top:4px; }
-.bar-row { display:flex; align-items:center; gap:8px; margin:5px 0; font-size:13px; }
-.bar-row .k { width:110px; text-align:right; color:#555; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.bar-row .bar { height:18px; background:linear-gradient(90deg,#3a6ea5,#1e3a5f); border-radius:3px; min-width:2px; }
-.bar-row .v { color:#888; font-size:12px; }
-.muted { color:#999; font-size:13px; }
+th,td { padding:11px 10px; text-align:left; border-bottom:1px solid var(--line); }
+th { color:var(--muted); font-weight:600; white-space:nowrap; font-size:12px;
+  text-transform:uppercase; letter-spacing:.4px; }
+tbody tr { transition:background .12s; }
+tbody tr:hover { background:rgba(58,120,216,.05); }
+
+/* ---------- 统计卡 ---------- */
+.stat-cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px; margin-bottom:20px; }
+.stat-card { background:var(--card); border-radius:var(--radius); padding:18px;
+  text-align:center; box-shadow:var(--shadow); }
+.stat-card .num { font-size:28px; font-weight:bold; color:var(--primary); }
+.stat-card .lbl { font-size:12px; color:var(--muted); margin-top:4px; }
+.bar-row { display:flex; align-items:center; gap:10px; margin:6px 0; font-size:13px; }
+.bar-row .k { width:110px; text-align:right; color:var(--muted); flex-shrink:0;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.bar-row .bar { height:18px; border-radius:4px; min-width:2px;
+  background:linear-gradient(90deg,var(--primary-2),var(--primary)); }
+.bar-row .v { color:var(--muted); font-size:12px; white-space:nowrap; }
+.muted { color:var(--muted); font-size:13px; }
 .chips { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
-.chip { padding:6px 14px; background:#fff; border:1px solid #d5dbe3; border-radius:16px; font-size:13px; cursor:pointer; }
-.chip:hover,.chip.on { background:#1e3a5f; color:#fff; border-color:#1e3a5f; }
+.chip { padding:6px 14px; background:var(--card); border:1px solid var(--line);
+  border-radius:16px; font-size:13px; cursor:pointer; transition:.15s; }
+.chip:hover,.chip.on { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+/* ---------- 详情页 ---------- */
 .detail-grid { display:grid; grid-template-columns:1.2fr 1fr; gap:20px; }
-@media(max-width:860px){ .detail-grid { grid-template-columns:1fr; } }
-.kv { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid #eef0f3; border-radius:8px; overflow:hidden; }
-.kv div { padding:10px 12px; border-bottom:1px solid #eef0f3; font-size:13px; }
-.kv div:nth-child(4n+1),.kv div:nth-child(4n+2) { background:#fafbfc; }
-.kv b { color:#1e3a5f; margin-right:6px; font-weight:normal; }
-.empty { text-align:center; padding:60px 0; color:#999; }
+@media(max-width:880px){ .detail-grid { grid-template-columns:1fr; } }
+.detail-pic { border-radius:var(--radius); overflow:hidden; margin-bottom:14px;
+  background:#dfe5ec; max-height:380px; }
+.detail-pic img { width:100%; object-fit:cover; max-height:380px; }
+.kv { display:grid; grid-template-columns:1fr 1fr; gap:0; border:1px solid var(--line);
+  border-radius:10px; overflow:hidden; }
+.kv div { padding:10px 12px; border-bottom:1px solid var(--line); font-size:13px; }
+.kv div:nth-child(4n+1),.kv div:nth-child(4n+2) { background:rgba(58,120,216,.04); }
+.kv b { color:var(--muted); margin-right:8px; font-weight:normal; font-size:12px; }
+.empty { text-align:center; padding:60px 0; color:var(--muted); }
+
+/* ---------- 价格历史 ---------- */
+.hist { display:flex; align-items:flex-end; gap:2px; height:80px; margin:10px 0 4px; }
+.hist .pt { position:relative; flex:1; max-width:38px; display:flex; flex-direction:column;
+  align-items:center; justify-content:flex-end; height:100%; }
+.hist .pt .col { width:70%; border-radius:3px 3px 0 0;
+  background:linear-gradient(180deg,var(--primary-2),var(--primary)); min-height:4px; }
+.hist .pt.down .col { background:linear-gradient(180deg,#5fd08a,var(--ok)); }
+.hist .pt .tip { position:absolute; bottom:calc(100% + 2px); font-size:10px;
+  color:var(--muted); white-space:nowrap; }
+.hist-x { display:flex; gap:2px; }
+.hist-x span { flex:1; max-width:38px; font-size:10px; color:var(--muted);
+  text-align:center; overflow:hidden; white-space:nowrap; }
+
+/* ---------- 多选对比浮条 ---------- */
+.cmp-bar { position:fixed; bottom:0; left:0; right:0; z-index:120;
+  background:var(--card); box-shadow:0 -4px 20px rgba(20,35,60,.18);
+  padding:10px 20px; display:none; align-items:center; justify-content:center;
+  gap:14px; flex-wrap:wrap; }
+.cmp-bar.show { display:flex; }
+.cmp-bar .names { font-size:13px; color:var(--muted); max-width:55%; overflow:hidden;
+  white-space:nowrap; text-overflow:ellipsis; }
+.cmp-bar .names b { color:var(--primary); }
+
+/* ---------- 分页/页脚/返回顶部 ---------- */
+.pager { display:flex; gap:6px; justify-content:center; margin:26px 0 10px; flex-wrap:wrap; }
+.pager a,.pager span { padding:7px 13px; border-radius:8px; background:var(--card);
+  border:1px solid var(--line); font-size:13px; }
+.pager a:hover { border-color:var(--primary); color:var(--primary); }
+.pager span.cur { background:var(--primary); color:#fff; border-color:var(--primary); }
+.footer { text-align:center; color:var(--muted); font-size:12px; padding:30px 16px 90px; }
+.footer a { color:var(--primary); }
+.to-top { position:fixed; right:22px; bottom:70px; width:42px; height:42px;
+  border-radius:50%; background:var(--card); color:var(--primary);
+  box-shadow:var(--shadow-h); border:1px solid var(--line); cursor:pointer;
+  font-size:17px; display:none; align-items:center; justify-content:center; z-index:110; }
+.to-top.show { display:flex; }
+.badge-down { color:var(--danger); font-weight:bold; }
+.badge-up { color:var(--ok); font-weight:bold; }
 </style>
 </head>
 <body>
 <div class="header"><div class="header-inner">
-  <div class="logo">房车比价通 <span>RV-Compare</span></div>
+  <div class="logo"><span class="emoji">🚐</span>房车比价通 <span>RV-Compare</span></div>
   <div class="nav">
-    <a href="/" class="{{ 'on' if active=='index' }}">车源列表</a>
-    <a href="/compare" class="{{ 'on' if active=='compare' }}">同款比价</a>
-    <a href="/stats" class="{{ 'on' if active=='stats' }}">行情总览</a>
+    <a href="/" class="{{ 'on' if active=='index' }}">🚚 车源列表</a>
+    <a href="/compare" class="{{ 'on' if active=='compare' }}">⚖️ 同款比价</a>
+    <a href="/drops" class="{{ 'on' if active=='drops' }}">📉 降价榜</a>
+    <a href="/stats" class="{{ 'on' if active=='stats' }}">📊 行情总览</a>
   </div>
+  <button class="theme-btn" id="themeBtn" title="切换深色/浅色">🌙</button>
 </div></div>
 <div class="container">{% block content %}{% endblock %}</div>
+
+<div class="cmp-bar" id="cmpBar">
+  <span class="names" id="cmpNames"></span>
+  <button class="btn" onclick="goCompare()">⚖️ 对比所选 (<span id="cmpN">0</span>/4)</button>
+  <button class="btn btn-light" onclick="clearCmp()">清空</button>
+</div>
+
+<div class="footer">
+  房车比价通 · 聚合二手房车信息，仅供比价参考 · 价格以车商实际报价为准<br>
+  数据来源：<a href="https://used.rv28.com" target="_blank" rel="noopener">房车猫</a> ·
+  <a href="https://www.21rv.com/used/" target="_blank" rel="noopener">21世纪房车</a> ·
+  <a href="https://www.cn2rv.com" target="_blank" rel="noopener">舒旅二手房车网</a>
+</div>
+
+<button class="to-top" id="toTop" onclick="window.scrollTo({top:0})">▲</button>
+
+<script>
+/* ---------- 深色模式 ---------- */
+const themeBtn = document.getElementById('themeBtn');
+function applyTheme(t) {
+  document.documentElement.dataset.theme = t;
+  themeBtn.textContent = t === 'dark' ? '☀️' : '🌙';
+  localStorage.setItem('rv_theme', t);
+}
+applyTheme(localStorage.getItem('rv_theme') || 'light');
+themeBtn.onclick = () =>
+  applyTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark');
+
+/* ---------- 收藏 ---------- */
+function getFavs() { return JSON.parse(localStorage.getItem('rv_favs') || '[]'); }
+function isFav(id) { return getFavs().includes(id); }
+function toggleFav(id, ev) {
+  ev.preventDefault(); ev.stopPropagation();
+  let f = getFavs();
+  f = f.includes(id) ? f.filter(x => x !== id) : [...f, id];
+  localStorage.setItem('rv_favs', JSON.stringify(f));
+  syncFavBtns();
+}
+function syncFavBtns() {
+  document.querySelectorAll('.fav-btn[data-tid]').forEach(b => {
+    b.textContent = isFav(b.dataset.tid) ? '❤️' : '🤍';
+  });
+}
+
+/* ---------- 多选对比（最多4台） ---------- */
+function getCmp() { return JSON.parse(localStorage.getItem('rv_cmp') || '[]'); }
+function setCmp(v) { localStorage.setItem('rv_cmp', JSON.stringify(v)); syncCmp(); }
+function toggleCmp(id, title, ev) {
+  ev.preventDefault(); ev.stopPropagation();
+  let c = getCmp();
+  if (c.includes(id)) c = c.filter(x => x !== id);
+  else { if (c.length >= 4) { alert('最多同时对比 4 台车'); return; } c.push(id); }
+  setCmp(c);
+}
+function syncCmp() {
+  const c = getCmp(), bar = document.getElementById('cmpBar');
+  document.querySelectorAll('.cmp-check input').forEach(cb => {
+    cb.checked = c.includes(cb.dataset.tid);
+  });
+  if (c.length) {
+    bar.classList.add('show');
+    document.getElementById('cmpN').textContent = c.length;
+    document.getElementById('cmpNames').textContent = '已选 ' + c.length + ' 台';
+  } else bar.classList.remove('show');
+}
+function goCompare() {
+  if (getCmp().length < 2) { alert('请至少选择 2 台车'); return; }
+  location.href = '/side?ids=' + getCmp().join(',');
+}
+function clearCmp() { setCmp([]); }
+
+/* ---------- 只看收藏 ---------- */
+function toggleFavOnly(btn) {
+  const on = btn.classList.toggle('on');
+  btn.textContent = on ? '❤️ 只看收藏：开' : '🤍 只看收藏';
+  document.querySelectorAll('.vcard[data-tid]').forEach(c => {
+    c.style.display = (!on || isFav(c.dataset.tid)) ? '' : 'none';
+  });
+}
+
+/* ---------- 返回顶部 ---------- */
+const toTop = document.getElementById('toTop');
+window.addEventListener('scroll', () =>
+  toTop.classList.toggle('show', scrollY > 500));
+
+syncFavBtns(); syncCmp();
+</script>
 </body>
 </html>

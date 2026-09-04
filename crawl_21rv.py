@@ -13,6 +13,7 @@
 """
 import argparse
 import json
+import os
 import random
 import re
 import time
@@ -22,6 +23,9 @@ from urllib.parse import urlencode
 import requests
 
 import database
+
+# 限速覆盖（秒）：默认 0.4~1.0；设置 RV_CRAWL_DELAY=n 时改为 n~2n（自己用可调快，公开环境勿滥用）
+RV_DELAY = float(os.environ.get("RV_CRAWL_DELAY", "0") or 0)
 
 API_BASE = "https://api.wanfangche.com"
 LIST_URL = API_BASE + "/community/public/fc/rvSecond/list"
@@ -65,7 +69,10 @@ def get_json(session, url, params):
 
 
 def polite_sleep(lo=0.4, hi=1.0):
-    time.sleep(random.uniform(lo, hi))
+    if RV_DELAY:
+        time.sleep(RV_DELAY + random.uniform(0, RV_DELAY))
+    else:
+        time.sleep(random.uniform(lo, hi))
 
 
 # ---------------- 数值/文本解析 ----------------
@@ -319,6 +326,7 @@ def main():
 
     items = crawl_list(session, args.pages)
     print(f"\n列表共采集 {len(items)} 条")
+    n_new = n_upd = 0
     for it in items:
         if not database.vehicle_exists(it["tid"]):
             database.upsert_vehicle({
@@ -330,6 +338,15 @@ def main():
                 "location": it["city"], "image_url": it["poster"],
                 "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
+            n_new += 1
+        else:
+            # 已入库车源刷新挂牌价等摘要字段（价格变化会记入 price_history）
+            database.update_summary({
+                "tid": it["tid"], "price": it["price"],
+                "mileage_text": it["mileage_text"], "location": it["city"],
+            })
+            n_upd += 1
+    print(f"列表处理完成: 新增 {n_new}，刷新 {n_upd}")
     print(f"当前库内共 {database.count_vehicles()} 条")
     if not args.no_details:
         crawl_details(session, items, force=args.force)

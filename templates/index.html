@@ -2,54 +2,79 @@
 {% block title %}车源列表 - 二手房车聚合比价{% endblock %}
 {% block content %}
 <div class="card" style="margin-bottom:18px;">
-  <form class="form-row" method="get">
-    <input type="text" name="kw" value="{{ f.kw }}" placeholder="搜品牌/型号，如 依维柯、V90" style="width:220px;">
-    <select name="rv_type"><option value="">全部类型</option>
-      {% for t in types %}<option value="{{ t }}" {{ 'selected' if f.rv_type==t }}>{{ t }}</option>{% endfor %}
-    </select>
-    <select name="chassis_brand"><option value="">全部底盘</option>
-      {% for c in cbs %}<option value="{{ c }}" {{ 'selected' if f.chassis_brand==c }}>{{ c }}</option>{% endfor %}
-    </select>
-    <select name="reg_year"><option value="">全部年份</option>
-      {% for y in years %}<option value="{{ y }}" {{ 'selected' if f.reg_year==y|string }}>{{ y }}年</option>{% endfor %}
-    </select>
-    <input type="number" name="pmin" value="{{ f.pmin }}" placeholder="最低价(万)" style="width:100px;" step="0.1">
-    <input type="number" name="pmax" value="{{ f.pmax }}" placeholder="最高价(万)" style="width:100px;" step="0.1">
-    <select name="source"><option value="">全部来源</option>
-      {% for s in srcs %}<option value="{{ s['source'] }}" {{ 'selected' if f.source==s['source'] }}>{{ source_name(s['source']) }}（{{ s['n'] }}）</option>{% endfor %}
-    </select>
-    <select name="sort">
-      <option value="">默认排序(最新)</option>
-      <option value="price_asc" {{ 'selected' if f.sort=='price_asc' }}>价格从低到高</option>
-      <option value="price_desc" {{ 'selected' if f.sort=='price_desc' }}>价格从高到低</option>
-      <option value="year_desc" {{ 'selected' if f.sort=='year_desc' }}>年份从新到旧</option>
-      <option value="mileage_asc" {{ 'selected' if f.sort=='mileage_asc' }}>里程从少到多</option>
-    </select>
-    <button type="submit">筛选</button>
-    <a class="btn btn-light" href="/">重置</a>
+  <form class="filters" method="get">
+    <div class="form-row">
+      <input type="text" name="kw" value="{{ f.kw }}" placeholder="搜品牌/型号，如 依维柯、V90" style="width:230px;">
+      <select name="rv_type"><option value="">全部类型</option>
+        {% for t in types %}<option value="{{ t }}" {{ 'selected' if f.rv_type==t }}>{{ t }}</option>{% endfor %}
+      </select>
+      <select name="chassis_brand"><option value="">全部底盘</option>
+        {% for c in cbs %}<option value="{{ c }}" {{ 'selected' if f.chassis_brand==c }}>{{ c }}</option>{% endfor %}
+      </select>
+      <select name="reg_year"><option value="">全部年份</option>
+        {% for y in years %}<option value="{{ y }}" {{ 'selected' if f.reg_year==y|string }}>{{ y }}年</option>{% endfor %}
+      </select>
+      <input type="number" name="pmin" value="{{ f.pmin }}" placeholder="最低价(万)" style="width:104px;" step="0.1">
+      <input type="number" name="pmax" value="{{ f.pmax }}" placeholder="最高价(万)" style="width:104px;" step="0.1">
+      <select name="source"><option value="">全部来源</option>
+        {% for s in srcs %}<option value="{{ s['source'] }}" {{ 'selected' if f.source==s['source'] }}>{{ source_name(s['source']) }}（{{ s['n'] }}）</option>{% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <select name="sort">
+        <option value="">排序：最新入库</option>
+        <option value="price_asc" {{ 'selected' if f.sort=='price_asc' }}>价格从低到高</option>
+        <option value="price_desc" {{ 'selected' if f.sort=='price_desc' }}>价格从高到低</option>
+        <option value="year_desc" {{ 'selected' if f.sort=='year_desc' }}>年份从新到旧</option>
+        <option value="mileage_asc" {{ 'selected' if f.sort=='mileage_asc' }}>里程从少到多</option>
+      </select>
+      <button type="submit">🔍 筛选</button>
+      <a class="btn btn-light" href="/">重置</a>
+      <button type="button" class="btn btn-light" onclick="toggleFavOnly(this)">🤍 只看收藏</button>
+      <a class="btn btn-light" href="/export.csv?{{ query_without_page() }}">⬇ 导出CSV</a>
+    </div>
   </form>
 </div>
 
-<div class="muted" style="margin-bottom:12px;">共找到 <b style="color:#1e3a5f;">{{ total }}</b> 条车源
-  （聚合自{% for s in srcs %}{{ source_name(s['source']) }}{{ '、' if not loop.last else '' }}{% endfor %}，仅供参考，价格以车商实际报价为准）</div>
+<div class="muted" style="margin-bottom:12px;">共找到 <b style="color:var(--primary);">{{ total }}</b> 条车源
+  （聚合自{% for s in srcs %}{{ source_name(s['source']) }}{{ '、' if not loop.last else '' }}{% endfor %}，仅供参考，价格以车商实际报价为准。勾选卡片左上角可加入多车对比）</div>
 
 {% if rows %}
 <div class="grid">
   {% for r in rows %}
-  <a class="vcard" href="/vehicle/{{ r['tid'] }}">
-    <div class="pic" style="background-color:#dfe5ec;">
+  {% set dropped = r['first_price'] and r['price'] and r['first_price'] > r['price'] %}
+  <div class="vcard" data-tid="{{ r['tid'] }}">
+    <a href="/vehicle/{{ r['tid'] }}" class="pic">
+      {% if r['image_url'] %}
+      <img src="{{ r['image_url'] }}" alt="" loading="lazy"
+           onerror="this.style.display='none';this.parentElement.querySelector('.noimg').style.display='flex';">
+      <div class="noimg" style="display:none;">🚐</div>
+      {% else %}
+      <div class="noimg">🚐</div>
+      {% endif %}
       <div class="tags">
-        <span class="tag src" style="background:{{ source_color(r['source']) }};">{{ source_name(r['source']) }}</span>
+        <span class="tag" style="background:{{ source_color(r['source']) }};">{{ source_name(r['source']) }}</span>
         {% for tg in (r['tags'] or '').split('、') %}{% if tg %}<span class="tag {{ 'org' if tg=='官方直营' }}">{{ tg }}</span>{% endif %}{% endfor %}
+        {% if dropped %}<span class="tag drop">↓降价 {{ (r['first_price'] - r['price'])|round(1) }}万</span>{% endif %}
       </div>
-    </div>
+      <button class="fav-btn" data-tid="{{ r['tid'] }}" onclick="toggleFav('{{ r['tid'] }}', event)" title="收藏">🤍</button>
+      <label class="cmp-check" onclick="toggleCmp('{{ r['tid'] }}', {{ r['title']|tojson }}, event)">
+        <input type="checkbox" data-tid="{{ r['tid'] }}" style="accent-color:#2456a6;"> 对比
+      </label>
+    </a>
     <div class="body">
-      <h3>{{ r['title'] or '（无标题）' }}</h3>
-      <div class="meta">{{ r['reg_year'] or '?' }}年上牌 · {{ r['mileage_km']|fmt_mileage }}公里 · {{ r['location'] or '-' }}</div>
-      <div class="price">{{ r['price']|fmt_price }}<small> 万</small></div>
-      <div class="sub">{{ r['brand'] or '未知品牌' }} · {{ r['chassis_model'] or r['chassis_brand'] or '底盘未知' }} · {{ r['rv_type'] or '' }}</div>
+      <a href="/vehicle/{{ r['tid'] }}">
+        <h3>{{ r['title'] or '（无标题）' }}</h3>
+        <div class="meta">{{ r['reg_year'] or '?' }}年上牌 · {{ r['mileage_km']|fmt_mileage }}公里 · {{ r['location'] or '-' }}</div>
+        <div class="price-row">
+          <span class="price">{{ r['price']|fmt_price }}<small> 万</small>
+            {%- if dropped %}<span class="was">首录 {{ r['first_price']|fmt_price }}万</span>{% endif -%}
+          </span>
+        </div>
+        <div class="sub">{{ r['brand'] or '未知品牌' }} · {{ r['chassis_model'] or r['chassis_brand'] or '底盘未知' }}{% if r['rv_type'] %} · {{ r['rv_type'] }}{% endif %}</div>
+      </a>
     </div>
-  </a>
+  </div>
   {% endfor %}
 </div>
 

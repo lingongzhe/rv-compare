@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}多车对比 - 二手房车聚合比价{% endblock %}
+{% block content %}
+<p class="muted" style="margin-bottom:12px;"><a href="/">← 返回列表</a></p>
+<h1 class="page-title">⚖️ 多车横向对比</h1>
+<p class="page-sub">最多同时对比 4 台车，在列表页勾选「对比」即可加入。</p>
+
+{% if rows|length < 2 %}
+<div class="card empty">至少需要 2 台车才能对比。<br><br>
+  <a class="btn" href="/">去列表页选择 →</a>
+</div>
+{% else %}
+<div class="card">
+  <div class="table-wrap"><table>
+    <thead><tr>
+      <th style="width:110px;">项目</th>
+      {% for r in rows %}<th>{{ r['title'] or '（无标题）' }}</th>{% endfor %}
+    </tr></thead>
+    <tbody>
+      <tr><th>挂牌价</th>
+        {% set prices = rows|map(attribute='price')|list %}
+        {% for r in rows %}
+        <td style="color:var(--danger); font-weight:bold; font-size:16px;">{{ r['price']|fmt_price }} 万
+          {% if r['price'] and r['price'] == prices|min and prices|max != prices|min %}<span class="tag drop">最低</span>{% endif %}</td>
+        {% endfor %}</tr>
+      {% if rows|selectattr('new_price')|list %}
+      <tr><th>新车含税价</th>{% for r in rows %}<td>{{ r['new_price'] or '-' }}</td>{% endfor %}</tr>
+      {% endif %}
+      <tr><th>上牌时间</th>{% for r in rows %}<td>{{ r['reg_date'] or '-' }}</td>{% endfor %}</tr>
+      <tr><th>行驶里程</th>{% for r in rows %}<td>{{ r['mileage_text'] or r['mileage_km']|fmt_mileage or '-' }}</td>{% endfor %}</tr>
+      <tr><th>排放标准</th>{% for r in rows %}<td>{{ r['emission'] or '-' }}</td>{% endfor %}</tr>
+      <tr><th>过户次数</th>{% for r in rows %}<td>{{ r['transfer_count'] or '-' }}</td>{% endfor %}</tr>
+      <tr><th>使用性质</th>{% for r in rows %}<td>{{ r['usage_type'] or '-' }}</td>{% endfor %}</tr>
+      <tr><th>所在地</th>{% for r in rows %}<td>{{ r['location'] or '-' }}</td>{% endfor %}</tr>
+      <tr><th>上装品牌</th>{% for r in rows %}<td>{{ r['brand'] or '-' }}</td>{% endfor %}</tr>
+      <tr><th>底盘</th>{% for r in rows %}<td>{{ (r['chassis_brand'] or '-') ~ ' ' ~ (r['chassis_model'] or '') }}</td>{% endfor %}</tr>
+      <tr><th>类型</th>{% for r in rows %}<td>{{ r['rv_type'] or '-' }}</td>{% endfor %}</tr>
+      <tr><th>来源</th>{% for r in rows %}
+        <td><span class="tag" style="background:{{ source_color(r['source']) }};">{{ source_name(r['source']) }}</span></td>
+        {% endfor %}</tr>
+      <tr><th>操作</th>{% for r in rows %}
+        <td><a class="btn btn-light btn-sm" href="/vehicle/{{ r['tid'] }}">查看详情</a></td>
+        {% endfor %}</tr>
+    </tbody>
+  </table></div>
+</div>
+{% endif %}
+{% endblock %}

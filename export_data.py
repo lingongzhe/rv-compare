@@ -22,9 +22,13 @@ FIELDS = [
 def main():
     with database.get_conn() as conn:
         rows = conn.execute("SELECT * FROM vehicles").fetchall()
+        first_price = {r["tid"]: r["fp"] for r in conn.execute(
+            "SELECT tid, MIN(price) AS fp FROM price_history WHERE price IS NOT NULL "
+            "GROUP BY tid")}
     out = []
     for r in rows:
         rec = {f: r[f] for f in FIELDS}
+        rec["first_price"] = first_price.get(r["tid"])
         # 描述太长会撑大包体，截断到前600字
         if rec.get("description") and len(rec["description"]) > 600:
             rec["description"] = rec["description"][:600] + "…"

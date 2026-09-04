@@ -42,6 +42,10 @@ a{color:inherit;text-decoration:none}
 .card .thumb{height:120px;background:linear-gradient(120deg,#dfe5ec,#eef1f4);position:relative}
 .card .thumb img{width:100%;height:100%;object-fit:cover}
 .srctag{position:absolute;top:8px;left:8px;font-size:11px;padding:3px 8px;border-radius:6px;color:#fff}
+.droptag{position:absolute;top:8px;left:8px;transform:translateY(24px);font-size:11px;padding:3px 8px;border-radius:6px;color:#fff;background:#d23b2e}
+.favheart{position:absolute;top:6px;right:6px;font-size:19px;color:#c94f42;background:rgba(255,255,255,.85);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.favheart.on{color:#e03131}
+.chip.more{width:100%;text-align:center;padding:10px}
 .card .body{padding:10px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
 .card .t{font-size:14px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:40px}
 .card .meta{font-size:12px;color:var(--muted)}
@@ -122,6 +126,7 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
       <option value="price_desc">价格最高</option>
       <option value="year_desc">年份最新</option>
     </select>
+    <button id="favBtn" class="chip" onclick="toggleFavOnly(this)">♡ 只看收藏</button>
     <button class="clearall" onclick="clearAll()">✕ 清除全部</button>
   </div>
 
@@ -150,6 +155,28 @@ var DATA=window.RV_DATA||[];
 var SOURCES={rv28:{name:'房车猫',color:'#3a6ea5'},'21rv':{name:'21世纪房车',color:'#e67e22'},cn2rv:{name:'舒旅二手房车网',color:'#2e9e5b'}};
 var state={view:'list',kw:'',f:{src:'',type:'',chassis:'',ubrand:'',year:'',pmin:'',pmax:'',sort:''},sort:'',tid:null};
 var cmpSel=[];
+var favOnly=false, shown=60, PAGE=60;
+function getFavs(){try{return JSON.parse(localStorage.getItem('rv_favs')||'[]')}catch(e){return []}}
+function isFav(id){return getFavs().indexOf(id)>=0}
+function toggleFav(id,ev){
+  if(ev){ev.stopPropagation()}
+  var f=getFavs();
+  var i=f.indexOf(id);
+  if(i>=0)f.splice(i,1);else f.push(id);
+  try{localStorage.setItem('rv_favs',JSON.stringify(f))}catch(e){}
+  renderList();
+}
+function toggleFavOnly(el){
+  favOnly=!favOnly;
+  el.classList.toggle('on',favOnly);
+  el.textContent=favOnly?'❤ 只看收藏：开':'♡ 只看收藏';
+  renderList();
+}
+function dropTag(r){
+  if(r.first_price&&r.price&&r.first_price>r.price)
+    return '<span class="droptag">↓降价'+(r.first_price-r.price).toFixed(1)+'万</span>';
+  return '';
+}
 
 if(window.RV_UPDATED){document.getElementById('updLabel').textContent='更新于 '+window.RV_UPDATED;}
 
@@ -162,6 +189,7 @@ function rangeYear(r){var y=r.reg_year;if(y)return y;var m=String(r.reg_date).ma
 function median(a){if(!a.length)return 0;a.sort(function(x,y){return x-y});var i=Math.floor(a.length/2);return a.length%2?a[i]:(a[i-1]+a[i])/2}
 
 function matches(r,f){
+  if(favOnly&&!isFav(r.tid))return false;
   if(f.src&&r.source!==f.src)return false;
   if(f.type&&r.rv_type!==f.type)return false;
   if(f.chassis&&r.chassis_brand!==f.chassis)return false;
@@ -219,7 +247,8 @@ function goList(){state.tid=null;switchView('list')}
 
 function renderList(){
   var arr=filtered();
-  document.getElementById('countLine').textContent='共 '+arr.length+' 台在售'+(SOURCES[state.f.src]?' · 来源 '+SOURCES[state.f.src].name:'');
+  if(state.tid)shown=PAGE;
+  document.getElementById('countLine').textContent='共 '+arr.length+' 台在售'+(SOURCES[state.f.src]?' · 来源 '+SOURCES[state.f.src].name:'')+(favOnly?' · 只看收藏':'');
   var kws=document.getElementById('kwbar');
   if(state.kw){kws.style.display='flex';kws.innerHTML='<span class="chip on" onclick="clearAll()">“'+state.kw+'” ✕</span>';}
   else kws.style.display='none';
