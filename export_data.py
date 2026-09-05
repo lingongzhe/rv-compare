@@ -5,6 +5,7 @@
 import datetime
 import json
 import os
+import re
 
 import database
 
@@ -42,6 +43,17 @@ def main():
     with open(OUT, "w", encoding="utf-8") as f:
         f.write("window.RV_UPDATED = %r;\n" % updated)
         f.write("window.RV_DATA = " + json.dumps(out, ensure_ascii=False) + ";\n")
+    # 缓存破除：把 index.html 里 data.js 的加载网址加上版本号，
+    # 否则浏览器/CDN 会一直复用旧文件，页面显示不到本次新数据
+    ver = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    idx_html = os.path.join(HERE, "docs", "index.html")
+    if os.path.exists(idx_html):
+        html = open(idx_html, encoding="utf-8").read()
+        new_html, n = re.subn(r'<script\s+src="data\.js(\?v=\d+)?"',
+                              f'<script src="data.js?v={ver}"', html)
+        if n:
+            with open(idx_html, "w", encoding="utf-8") as f:
+                f.write(new_html)
     size = os.path.getsize(OUT) / 1024
     by_src = {}
     for r in out:
