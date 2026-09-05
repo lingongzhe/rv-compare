@@ -161,13 +161,28 @@ def query_vehicles(f, page=1, per_page=24):
     if f.get("chassis_brand"):
         where.append("chassis_brand=?"); args.append(f["chassis_brand"])
     if f.get("reg_year"):
-        where.append("reg_year=?"); args.append(int(f["reg_year"]))
+        try:
+            rz = int(float(f["reg_year"]))
+        except (TypeError, ValueError):
+            rz = None
+        if rz is not None:
+            where.append("reg_year=?"); args.append(rz)
     if f.get("source"):
         where.append("source=?"); args.append(f["source"])
     if f.get("pmin"):
-        where.append("price>=?"); args.append(float(f["pmin"]))
+        try:
+            lo = float(f["pmin"])
+        except (TypeError, ValueError):
+            lo = None
+        if lo is not None:
+            where.append("price>=?"); args.append(lo)
     if f.get("pmax"):
-        where.append("price<=?"); args.append(float(f["pmax"]))
+        try:
+            hi = float(f["pmax"])
+        except (TypeError, ValueError):
+            hi = None
+        if hi is not None:
+            where.append("price<=?"); args.append(hi)
     where_sql = ("WHERE " + " AND ".join(where)) if where else ""
     order = {
         "price_asc": "price ASC",
@@ -177,10 +192,11 @@ def query_vehicles(f, page=1, per_page=24):
         "fetched": "fetched_at DESC",
     }.get(f.get("sort"), "fetched_at DESC, tid DESC")
     total_sql = f"SELECT COUNT(*) c FROM vehicles {where_sql}"
-    sql = (f"SELECT vehicles.*, fp.first_price FROM vehicles {where_sql} "
+    # JOIN 必须先于 WHERE，否则有筛选时 SQL 报 near "LEFT" 语法错
+    sql = (f"SELECT vehicles.*, fp.first_price FROM vehicles "
            f"LEFT JOIN (SELECT tid, MIN(price) AS first_price FROM price_history "
            f"GROUP BY tid) fp ON fp.tid = vehicles.tid "
-           f"ORDER BY {order} LIMIT ? OFFSET ?")
+           f"{where_sql} ORDER BY {order} LIMIT ? OFFSET ?")
     with get_conn() as conn:
         total = conn.execute(total_sql, args).fetchone()["c"]
         rows = conn.execute(sql, args + [per_page, (page - 1) * per_page]).fetchall()
