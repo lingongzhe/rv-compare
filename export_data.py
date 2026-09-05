@@ -11,12 +11,16 @@ import database
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "docs", "data.js")
 
+# 只导出前端实际用到的字段；new_price/mileage_text 前端未使用，一并剔除减负
 FIELDS = [
-    "tid", "source", "url", "title", "price", "new_price", "mileage_km",
-    "mileage_text", "reg_year", "reg_date", "emission", "transfer_count",
+    "tid", "source", "url", "title", "price", "mileage_km",
+    "reg_year", "reg_date", "emission", "transfer_count",
     "usage_type", "location", "chassis_brand", "chassis_model", "brand",
     "rv_type", "tags", "image_url", "description",
 ]
+
+# 描述截断长度（前端仅在详情页展示，短一点足够识别车况；可用环境变量 RV_DESC_LEN 覆盖）
+DESC_LEN = int(os.environ.get("RV_DESC_LEN", "150"))
 
 
 def main():
@@ -29,9 +33,9 @@ def main():
     for r in rows:
         rec = {f: r[f] for f in FIELDS}
         rec["first_price"] = first_price.get(r["tid"])
-        # 描述太长会撑大包体，截断到前300字（完整配置在本地应用详情页查看）
-        if rec.get("description") and len(rec["description"]) > 300:
-            rec["description"] = rec["description"][:300] + "…"
+        # 描述太长会造成包体膨胀，按 DESC_LEN 截断（完整配置可在前端详情页查看）
+        if rec.get("description") and len(rec["description"]) > DESC_LEN:
+            rec["description"] = rec["description"][:DESC_LEN] + "…"
         out.append(rec)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
