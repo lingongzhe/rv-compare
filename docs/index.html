@@ -27,8 +27,14 @@ a{color:inherit;text-decoration:none}
 .navtab a{flex:1;text-align:center;padding:10px 0 8px;font-size:12px;color:var(--muted)}
 .navtab a.active{color:var(--accent);font-weight:600}
 .navtab a i{display:block;font-style:normal;font-size:19px;line-height:1;margin-bottom:3px}
+.topnav{display:none;margin-top:10px;gap:6px}
+.topnav a{padding:7px 16px;border-radius:18px;font-size:13px;color:#c9d7e8;cursor:pointer}
+.topnav a:hover{background:rgba(255,255,255,.14)}
+.topnav a.active{background:#fff;color:var(--blue);font-weight:600}
 .wrap{max-width:1200px;margin:0 auto;padding:14px}
 .filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+.fhead{display:none}
+.fbody{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%}
 .filters select,.filters input{font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#333;max-width:100%}
 .filters .clearall{margin-left:auto;font-size:12px;border:1px solid #d23b2e;color:#d23b2e;background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
 .filters .clearall:active{background:#fdeeea}
@@ -60,6 +66,7 @@ a{color:inherit;text-decoration:none}
 .field .v{flex:1;word-break:break-word}
 .desc{font-size:13px;line-height:1.7;color:#444;margin-top:4px;white-space:pre-wrap}
 .back{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--accent)}
+.detail-wrap{min-width:0}
 table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
 th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;white-space:nowrap}
 th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
@@ -81,16 +88,44 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
 .cmpbox td,.cmpbox th{white-space:normal;vertical-align:top;min-width:110px}
 .selrow{font-size:13px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0;cursor:pointer}
 .selrow .pm{color:#d23b2e;font-weight:700}
+/* ---------- 移动端 / 平板（≤900px） ---------- */
+@media (max-width:900px){
+  .fhead{display:flex;align-items:center;justify-content:space-between;cursor:pointer;flex:1 1 100%;font-size:14px;font-weight:600;color:var(--blue);user-select:none}
+  .fhead .fcount{font-size:12px;color:var(--accent);margin-left:6px;font-weight:600}
+  .farrow{transition:transform .2s;color:var(--muted);font-size:12px}
+  .filters.open .farrow{transform:rotate(180deg)}
+  .fbody{display:none}
+  .filters.open .fbody{display:flex}
+  .fbody select,.fbody input{flex:1 1 calc(50% - 4px);font-size:16px;padding:10px}
+  .fbody .chip,.fbody .clearall{flex:1 1 calc(50% - 4px);text-align:center;padding:10px 8px}
+  .filters .clearall{margin-left:0}
+  .searchbar input{font-size:16px;padding:11px 14px}
+  .searchbar button{padding:0 18px}
+  .chip{padding:8px 13px}
+  .navtab a{padding:11px 0 9px}
+  .count{font-size:13px}
+  .grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .card .thumb{height:110px}
+}
 @media (max-width:560px){
   body{padding-bottom:60px}
-  .filters{flex-direction:column}
-  .filters .clearall{margin-left:0}
-  .grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
-  .card .thumb{height:96px}
+  .card .thumb{height:100px}
   .card .t{font-size:13px;min-height:36px}
 }
-@media (min-width:561px) and (max-width:900px){
-  .grid{grid-template-columns:repeat(2,1fr)}
+/* ---------- 桌面端（≥901px） ---------- */
+@media (min-width:901px){
+  body{padding-bottom:0}
+  .navtab{display:none}
+  .topnav{display:flex}
+  .top{padding:12px 22px}
+  .top .hd{align-items:center}
+  .searchbar{margin-top:8px;max-width:480px}
+  .grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
+  .card .thumb{height:150px}
+  .detail-wrap{display:grid;grid-template-columns:minmax(360px,5fr) 7fr;gap:16px;align-items:start}
+  .detail-wrap .panel{margin-bottom:0}
+  .same-panel{position:sticky;top:124px;max-height:calc(100vh - 150px);overflow-y:auto}
+  .cmpx{bottom:24px}
 }
 </style>
 </head>
@@ -107,12 +142,20 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
     <input id="kw" placeholder="搜索：品牌 / 车型 / 关键词" onkeydown="if(event.key==='Enter')applySearch()">
     <button onclick="applySearch()">搜索</button>
   </div>
+  <nav class="topnav">
+    <a href="javascript:void(0)" id="tabTopList" class="active" onclick="switchView('list')">🚐 车源列表</a>
+    <a href="javascript:void(0)" id="tabTopCompare" onclick="switchView('compare')">⚖️ 同款比价</a>
+  </nav>
 </header>
 
 <div class="wrap">
   <div id="kwbar" class="chips" style="display:none"></div>
 
   <div class="filters" id="filterPanel">
+    <div class="fhead" onclick="toggleFilters()">
+      <span>🔍 筛选<span class="fcount" id="fCount"></span></span><span class="farrow">▾</span>
+    </div>
+    <div class="fbody">
     <select id="f_src" onchange="applyFilters()"><option value="">全部来源</option></select>
     <select id="f_type" onchange="applyFilters()"><option value="">全部类型</option></select>
     <select id="f_chassis" onchange="applyFilters()"><option value="">全部底盘品牌</option></select>
@@ -128,6 +171,7 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
     </select>
     <button id="favBtn" class="chip" onclick="toggleFavOnly(this)">♡ 只看收藏</button>
     <button class="clearall" onclick="clearAll()">✕ 清除全部</button>
+    </div>
   </div>
 
   <!-- 车源列表 -->
@@ -136,8 +180,10 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
   <!-- 详情 -->
   <div id="viewDetail" style="display:none">
     <a class="back" href="javascript:void(0)" onclick="goList()">← 返回列表</a>
-    <div id="detailBox"></div>
-    <div class="panel" style="margin-top:14px"><h2>同款在售对比</h2><div id="sameBox"></div></div>
+    <div class="detail-wrap">
+      <div id="detailBox"></div>
+      <div class="panel same-panel"><h2>同款在售对比</h2><div id="sameBox"></div></div>
+    </div>
   </div>
 
   <!-- 同款比价 -->
@@ -236,6 +282,13 @@ function readFilters(){
   state.f.pmax=document.getElementById('f_pmax').value;
   state.f.sort=document.getElementById('f_sort').value;
 }
+function toggleFilters(){document.getElementById('filterPanel').classList.toggle('open')}
+function updateFCount(){
+  var n=0,k;for(k in state.f)if(state.f[k])n++;
+  if(favOnly)n++;
+  var el=document.getElementById('fCount');
+  if(el)el.textContent=n?(' · '+n+' 项生效'):'';
+}
 function applyFilters(){readFilters();renderList()}
 function applySearch(){state.kw=document.getElementById('kw').value.trim();renderList()}
 function clearAll(){
@@ -246,6 +299,7 @@ function clearAll(){
 function goList(){state.tid=null;switchView('list')}
 
 function renderList(){
+  updateFCount();
   var arr=filtered();
   if(state.tid)shown=PAGE;
   document.getElementById('countLine').textContent='共 '+arr.length+' 台在售'+(SOURCES[state.f.src]?' · 来源 '+SOURCES[state.f.src].name:'')+(favOnly?' · 只看收藏':'');
@@ -411,8 +465,13 @@ function showView(v){
   document.getElementById('searchBar').style.display=(isList?'':'none');
   document.getElementById('kwbar').style.display=(isList?document.getElementById('kwbar').style.display:'none');
   document.getElementById('filterPanel').style.display=(isList?'':'none');
-  ['tabList','tabCompare'].forEach(function(id){document.getElementById(id).className=(id==='tab'+(v==='detail'?'List':cap(v)))?'active':''});
-  document.querySelector('.navtab').style.display=(v==='detail')?'none':'';
+  var act={list:'tabList',compare:'tabCompare'}[v]||'tabList';
+  var actTop={list:'tabTopList',compare:'tabTopCompare'}[v]||'tabTopList';
+  ['tabList','tabCompare'].forEach(function(id){document.getElementById(id).className=(id===act)?'active':''});
+  ['tabTopList','tabTopCompare'].forEach(function(id){var el=document.getElementById(id);if(el)el.className=(id===actTop)?'active':''});
+  var navDisp=(v==='detail')?'none':'';
+  document.querySelector('.navtab').style.display=navDisp;
+  var tn=document.querySelector('.topnav');if(tn)tn.style.display=navDisp;
 }
 function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function switchView(v){
