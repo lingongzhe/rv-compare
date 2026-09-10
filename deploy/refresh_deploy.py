@@ -95,6 +95,9 @@ def main():
         p = sh([GIT, "push", push_url, f"HEAD:{BRANCH}"], env=env)
         if p.returncode == 0:
             log("push 成功 -> " + REPO + " (" + BRANCH + ")")
+            # 刷新 origin/main 跟踪引用：直连 URL 推送不会自动更新，
+            # 否则 git status 会一直显示 ahead N，误以为没推上去
+            sh([GIT, "fetch", "origin"])
         else:
             log("push 失败: " + (p.stderr.strip()[-400:] or "无错误输出"))
     else:
