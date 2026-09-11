@@ -1,0 +1,13 @@
+{
+  "name": "房车比价通",
+  "short_name": "房车比价",
+  "description": "聚合三源在售二手房车，支持筛选、同款比对与品牌速览",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
