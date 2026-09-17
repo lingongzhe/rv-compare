@@ -58,6 +58,23 @@ def crawl(py, args):
     return r.returncode == 0
 
 
+def report_sources():
+    """刷新结束后打印各源新鲜度：日志里一眼看出是上游停更还是抓取失败"""
+    try:
+        import database
+        fresh = database.source_freshness()
+    except Exception as e:      # 数据库不可用时不影响推送主流程
+        log(f"  ! 数据源体检跳过: {e}")
+        return
+    if not fresh:
+        return
+    log("  数据源体检：")
+    for src, v in sorted(fresh.items(), key=lambda kv: -(kv[1].get("n") or 0)):
+        flag = "⚠停更" if (v.get("stale_days") is not None and v["stale_days"] > 14) else "正常"
+        log(f"    {src:<6} {v.get('n', 0):>5} 台 | 源站最新挂牌 {v.get('last_post') or '-':<10} "
+            f"| 停更 {v.get('stale_days')} 天 | 最近巡检 {v.get('last_run') or '-'} | {flag}")
+
+
 def main():
     log("==== 刷新开始 ====")
     token = get_token()
@@ -67,11 +84,15 @@ def main():
 
     if "--no-crawl" not in sys.argv:
         # 各源增量刷新（礼貌限速）
-        crawl("crawl_21rv.py", ["--pages", "2"])
+        # 21rv 用 --full：列表接口支持 size=100，全量盘点只要约 33 次请求，
+        # 这样排在列表深处的老车源降价、以及新挂牌都不会漏；详情只补缺失的。
+        crawl("crawl_21rv.py", ["--full"])
         crawl("crawl.py", ["--pages", "2"])
         crawl("crawl_cn2rv.py", [])
     else:
         log("--no-crawl：跳过爬虫，直接导出现有库")
+
+    report_sources()
 
     r = sh([sys.executable, "export_data.py"])
     if r.stdout:

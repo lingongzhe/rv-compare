@@ -248,6 +248,7 @@ def main():
     seen = crawl_list(session)
     print(f"\n列表共采集 {len(seen)} 条")
     # 先写列表摘要（缺详情时列表页也能展示），再抓详情
+    n_new = 0
     for cid, title in seen.items():
         if not database.vehicle_exists(f"{SOURCE}_{cid}"):
             database.upsert_vehicle({
@@ -262,10 +263,13 @@ def main():
                 "rv_type": infer_rv_type(title),
                 "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
             })
+            n_new += 1
     print(f"当前库内共 {database.count_vehicles()} 条")
     if not args.no_details:
         crawl_details(session, seen, force=args.force)
         print(f"最终库内共 {database.count_vehicles()} 条")
+    database.log_run(SOURCE, ok=bool(seen), scanned=len(seen), added=n_new,
+                     note="舒旅二手房车网列表巡检")
 
 
 if __name__ == "__main__":

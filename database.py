@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS vehicles (
     image_url      TEXT,
     specs_json     TEXT,                 -- 正文提取的完整配置（JSON）
     description    TEXT,                 -- 正文描述
-    fetched_at     TEXT
+    posted_at      TEXT,                 -- 源站挂牌/发布时间（用于判断数据源是否停更）
+    fetched_at     TEXT                  -- 本地抓取时间
 );
 CREATE INDEX IF NOT EXISTS idx_vehicles_brand ON vehicles(brand);
 CREATE INDEX IF NOT EXISTS idx_vehicles_chassis ON vehicles(chassis_model);
@@ -48,6 +49,20 @@ CREATE TABLE IF NOT EXISTS price_history (
     UNIQUE(tid, captured_at)
 );
 CREATE INDEX IF NOT EXISTS idx_price_history_tid ON price_history(tid);
+
+-- 每次爬虫巡检记录：用来区分"抓取失败"和"源站没新车源"，
+-- 页面据此显示"某源今天巡检过、接口正常、只是上游停更"
+CREATE TABLE IF NOT EXISTS crawl_runs (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    source         TEXT,
+    started_at     TEXT,
+    ok             INTEGER,   -- 1 成功 / 0 失败
+    scanned        INTEGER,   -- 本次读到的车源条数
+    added          INTEGER,   -- 其中新增条数
+    upstream_total INTEGER,   -- 源站在售总量（源站自己报的）
+    note           TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_crawl_runs_source ON crawl_runs(source, started_at);
 """
 
 
@@ -61,12 +76,21 @@ def get_conn():
 def init_db():
     with get_conn() as conn:
         conn.executescript(SCHEMA)
+        _migrate(conn)
         # 价格历史基线回填：已有车源且无任何历史记录时，以当前挂牌价作为首次收录价
         conn.execute(
             "INSERT OR IGNORE INTO price_history(tid, price, captured_at) "
             "SELECT tid, price, datetime('now','localtime') FROM vehicles "
             "WHERE price IS NOT NULL "
             "AND tid NOT IN (SELECT DISTINCT tid FROM price_history)")
+
+
+def _migrate(conn):
+    """老库补列：SQLite 的 CREATE TABLE IF NOT EXISTS 不会给已存在的表加字段"""
+    have = {r["name"] for r in conn.execute("PRAGMA table_info(vehicles)")}
+    for col, ddl in (("posted_at", "ALTER TABLE vehicles ADD COLUMN posted_at TEXT"),):
+        if col not in have:
+            conn.execute(ddl)
 
 
 def vehicle_exists(tid):
@@ -87,19 +111,28 @@ COLUMNS = [
     "tid", "source", "url", "title", "price", "new_price", "mileage_km",
     "mileage_text", "reg_date", "reg_year", "emission", "transfer_count",
     "usage_type", "location", "chassis_brand", "chassis_model", "brand",
-    "rv_type", "tags", "image_url", "specs_json", "description", "fetched_at",
+    "rv_type", "tags", "image_url", "specs_json", "description",
+    "posted_at", "fetched_at",
 ]
+
+# 这些列在整行 upsert 时用 COALESCE 保护：爬虫没提供（None）就保留库里原值，
+# 避免"只抓列表摘要"的调用把详情字段/挂牌时间清空
+KEEP_IF_NULL = {"posted_at"}
 
 
 def upsert_vehicle(rec):
     vals = [rec.get(c) for c in COLUMNS]
+    upd = ",".join(
+        (f"{c}=COALESCE(excluded.{c},vehicles.{c})" if c in KEEP_IF_NULL
+         else f"{c}=excluded.{c}")
+        for c in COLUMNS if c != "tid")
     sql = (
         "INSERT INTO vehicles ({cols}) VALUES ({ph}) "
         "ON CONFLICT(tid) DO UPDATE SET {upd}"
     ).format(
         cols=",".join(COLUMNS),
         ph=",".join(["?"] * len(COLUMNS)),
-        upd=",".join(f"{c}=excluded.{c}" for c in COLUMNS if c != "tid"),
+        upd=upd,
     )
     with get_conn() as conn:
         old = conn.execute(
@@ -268,6 +301,65 @@ def sources():
     with get_conn() as conn:
         return conn.execute(
             "SELECT source, COUNT(*) n FROM vehicles GROUP BY source ORDER BY n DESC").fetchall()
+
+
+def log_run(source, ok=True, scanned=0, added=0, upstream_total=None, note=""):
+    """记一次爬虫巡检。用它区分"抓取失败"和"源站没新车源"。"""
+    from datetime import datetime
+    with get_conn() as conn:
+        conn.execute(
+            "INSERT INTO crawl_runs(source,started_at,ok,scanned,added,upstream_total,note) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (source, datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+             1 if ok else 0, scanned, added, upstream_total, note))
+
+
+def recent_runs():
+    """各源最近一次巡检记录 {source: {started_at, ok, scanned, added, upstream_total, note}}"""
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT r.* FROM crawl_runs r
+            JOIN (SELECT source, MAX(id) mid FROM crawl_runs GROUP BY source) m
+              ON m.mid = r.id
+        """).fetchall()
+    return {r["source"]: dict(r) for r in rows}
+
+
+def source_freshness():
+    """各数据源的"健康状况"：车源数、最后入库时间、源站最新挂牌时间、最近巡检。
+
+    用于前端提示"某数据源已停更"，避免用户误以为是本站抓取坏了。
+    返回 {source: {n, last_fetch, last_post, stale_days, last_run, run_ok}}
+    """
+    import datetime
+    today = datetime.date.today()
+    out = {}
+    with get_conn() as conn:
+        rows = conn.execute("""
+            SELECT source,
+                   COUNT(*)                                   AS n,
+                   MAX(COALESCE(fetched_at,''))               AS last_fetch,
+                   MAX(COALESCE(posted_at,''))                AS last_post
+            FROM vehicles GROUP BY source
+        """).fetchall()
+    runs = recent_runs()
+    for r in rows:
+        last_post = (r["last_post"] or "")[:10]
+        stale = None
+        if last_post:
+            try:
+                stale = (today - datetime.date.fromisoformat(last_post)).days
+            except ValueError:
+                stale = None
+        out[r["source"]] = {
+            "n": r["n"],
+            "last_fetch": (r["last_fetch"] or "")[:16],
+            "last_post": last_post,
+            "stale_days": stale,
+            "last_run": (runs.get(r["source"]) or {}).get("started_at", "")[:16],
+            "run_ok": (runs.get(r["source"]) or {}).get("ok"),
+        }
+    return out
 
 
 def compare_groups():

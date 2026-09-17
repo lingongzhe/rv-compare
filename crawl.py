@@ -311,9 +311,10 @@ def main():
 
     if args.details_only:
         with database.get_conn() as conn:
+            # 必须限定来源：否则会拿别的站的车源按房车猫的解析规则去抓，字段会被写脏
             rows = conn.execute(
                 "SELECT tid,url,title,mileage_text,reg_date,location,tags,image_url,price "
-                "FROM vehicles").fetchall()
+                "FROM vehicles WHERE source='rv28'").fetchall()
         items = [{
             "tid": r["tid"], "url": r["url"], "title": r["title"],
             "mileage_text": r["mileage_text"] or "", "reg_date": r["reg_date"] or "",
@@ -351,6 +352,8 @@ def main():
         if not args.no_details:
             crawl_details(session, items)
             print(f"最终库内共 {database.count_vehicles()} 条")
+        database.log_run("rv28", ok=bool(items), scanned=len(items), added=n_new,
+                         note="房车猫列表巡检")
 
 
 if __name__ == "__main__":

@@ -6,6 +6,8 @@
 <title>房车比价通 · 二手房车聚合比价</title>
 <meta name="description" content="聚合房车猫、21世纪房车、舒旅二手房车网三源在售二手房车，支持筛选、同款比对与品牌速览。">
 <meta name="theme-color" content="#1e3a5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.ico" sizes="48x48">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -14,86 +16,151 @@
 :root{
   --blue:#1e3a5f; --accent:#e67e22; --bg:#f4f6f8; --card:#fff;
   --line:#e3e8ee; --text:#222; --muted:#7a8494;
+  --red:#d23b2e;
+  --navh:60px;                     /* 底部导航高度 */
+  --safe:env(safe-area-inset-bottom,0px);   /* iPhone 底部安全区 */
+  --safeT:env(safe-area-inset-top,0px);
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html{-webkit-text-size-adjust:100%}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--text);padding-bottom:64px}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  background:var(--bg);color:var(--text);
+  padding-bottom:calc(var(--navh) + var(--safe));
+  overflow-x:hidden;
+}
 a{color:inherit;text-decoration:none}
-.top{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,#1e3a5f,#2c5688);color:#fff;padding:12px 16px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-.top .hd{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
-.top h1{font-size:clamp(17px,4.5vw,22px);font-weight:700;display:flex;align-items:center;gap:8px}
-.top h1 .dot{width:9px;height:9px;border-radius:50%;background:#7fd1a0;display:inline-block}
+img{max-width:100%}
+
+/* ---------- 顶栏 ---------- */
+.top{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,#1e3a5f,#2c5688);color:#fff;
+  padding:calc(10px + var(--safeT)) 14px 10px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
+.top .hd{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.top h1{font-size:clamp(16px,4.4vw,22px);font-weight:700;display:flex;align-items:center;gap:8px}
+.top h1 .dot{width:9px;height:9px;border-radius:50%;background:#7fd1a0;display:inline-block;flex:0 0 auto}
 .upd{font-size:11px;background:rgba(255,255,255,.16);padding:4px 9px;border-radius:14px;white-space:nowrap}
 .src-line{font-size:12px;opacity:.85;margin-top:4px}
-.searchbar{display:flex;gap:8px;margin-top:10px}
-.searchbar input{flex:1;border:none;border-radius:20px;padding:9px 14px;font-size:14px;background:#fff;color:#222}
-.searchbar button{border:none;border-radius:20px;padding:0 16px;background:var(--accent);color:#fff;font-size:14px}
-.navtab{position:fixed;left:0;right:0;bottom:0;display:flex;background:#fff;border-top:1px solid var(--line);z-index:30;padding-bottom:env(safe-area-inset-bottom)}
-.navtab a{flex:1;text-align:center;padding:10px 0 8px;font-size:12px;color:var(--muted)}
+.src-line b{font-weight:600;color:#ffd9b0}
+.searchbar{display:flex;gap:8px;margin-top:10px;position:relative}
+.searchbar input{flex:1;border:none;border-radius:20px;padding:9px 34px 9px 14px;font-size:14px;background:#fff;color:#222;min-width:0}
+.searchbar .clr{position:absolute;left:0;top:0;height:100%;width:34px;display:none;align-items:center;justify-content:center;
+  color:#98a2b3;background:none;border:none;font-size:15px}
+.searchbar.has-kw .clr{display:flex}
+.searchbar button{border:none;border-radius:20px;padding:0 16px;background:var(--accent);color:#fff;font-size:14px;flex:0 0 auto}
+
+/* ---------- 数据源健康提示 ---------- */
+.srchealth{margin-bottom:10px;border-radius:12px;border:1px solid #ffd9a8;background:#fff8ec;padding:10px 12px;font-size:12.5px;line-height:1.6}
+.srchealth .sh-hd{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.srchealth b{color:#b35c00}
+.srchealth .sh-x{border:none;background:none;color:var(--muted);font-size:14px;padding:0 2px;flex:0 0 auto}
+.srchealth ul{margin:6px 0 0 16px;color:#6b5a3e}
+.srchealth .sh-ok{margin-top:6px;color:var(--muted);font-size:12px}
+
+/* ---------- 底部导航 ---------- */
+.navtab{position:fixed;left:0;right:0;bottom:0;display:flex;background:#fff;border-top:1px solid var(--line);
+  z-index:30;padding-bottom:var(--safe)}
+.navtab a{flex:1;text-align:center;padding:9px 0 7px;font-size:12px;color:var(--muted)}
 .navtab a.active{color:var(--accent);font-weight:600}
 .navtab a i{display:block;font-style:normal;font-size:19px;line-height:1;margin-bottom:3px}
 .topnav{display:none;margin-top:10px;gap:6px}
 .topnav a{padding:7px 16px;border-radius:18px;font-size:13px;color:#c9d7e8;cursor:pointer}
 .topnav a:hover{background:rgba(255,255,255,.14)}
 .topnav a.active{background:#fff;color:var(--blue);font-weight:600}
-.wrap{max-width:1200px;margin:0 auto;padding:14px}
-.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
+
+.wrap{max-width:1200px;margin:0 auto;padding:12px}
+
+/* ---------- 筛选 ---------- */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
 .fhead{display:none}
 .fbody{display:flex;flex-wrap:wrap;gap:8px;flex:1 1 100%}
 .filters select,.filters input{font-size:13px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:#fff;color:#333;max-width:100%}
-.filters .clearall{margin-left:auto;font-size:12px;border:1px solid #d23b2e;color:#d23b2e;background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
+.filters .clearall{margin-left:auto;font-size:12px;border:1px solid var(--red);color:var(--red);background:#fff;border-radius:8px;padding:6px 12px;cursor:pointer}
 .filters .clearall:active{background:#fdeeea}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center}
 .chip{font-size:12px;padding:5px 11px;border:1px solid var(--line);border-radius:20px;background:#fff;color:#555;cursor:pointer}
 .chip.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 .count{font-size:12px;color:var(--muted);margin-bottom:10px}
+
+/* ---------- 车源卡片 ---------- */
 .grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;transition:box-shadow .15s}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;
+  display:flex;flex-direction:column;transition:box-shadow .15s,transform .1s}
 .card:hover{box-shadow:0 6px 18px rgba(30,58,95,.12)}
-.card .thumb{height:120px;background:linear-gradient(120deg,#dfe5ec,#eef1f4);position:relative}
-.card .thumb img{width:100%;height:100%;object-fit:cover}
+.card:active{transform:scale(.985)}
+.card .thumb{aspect-ratio:4/3;height:auto;background:linear-gradient(120deg,#dfe5ec,#eef1f4);position:relative;overflow:hidden}
+.card .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .srctag{position:absolute;top:8px;left:8px;font-size:11px;padding:3px 8px;border-radius:6px;color:#fff}
-.droptag{position:absolute;top:8px;left:8px;transform:translateY(24px);font-size:11px;padding:3px 8px;border-radius:6px;color:#fff;background:#d23b2e}
-.favheart{position:absolute;top:6px;right:6px;font-size:19px;color:#c94f42;background:rgba(255,255,255,.85);border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.droptag{position:absolute;top:8px;left:8px;transform:translateY(24px);font-size:11px;padding:3px 8px;border-radius:6px;color:#fff;background:var(--red)}
+.favheart{position:absolute;top:6px;right:6px;font-size:19px;color:#c94f42;background:rgba(255,255,255,.88);border-radius:50%;
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18)}
 .favheart.on{color:#e03131}
-.chip.more{width:100%;text-align:center;padding:10px}
+.chip.more{grid-column:1/-1;width:100%;text-align:center;padding:12px}
 .card .body{padding:10px 12px;display:flex;flex-direction:column;gap:4px;flex:1}
 .card .t{font-size:14px;font-weight:600;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:40px}
-.card .meta{font-size:12px;color:var(--muted)}
-.card .btm{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}
-.price{color:#d23b2e;font-weight:700;font-size:18px}
-.sale{font-size:12px;color:#4a9}
+.card .meta{font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .btm{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;gap:6px}
+.price{color:var(--red);font-weight:700;font-size:18px;white-space:nowrap}
+.sale{font-size:12px;color:#4a9;white-space:nowrap}
+
+/* ---------- 面板 / 详情 ---------- */
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:14px}
-.panel h2{font-size:16px;margin-bottom:10px;color:var(--blue)}
-.field{display:flex;font-size:13px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.panel h2{font-size:16px;margin-bottom:10px;color:var(--blue);line-height:1.4}
+.field{display:flex;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line)}
 .field:last-child{border-bottom:none}
-.field .k{width:84px;color:var(--muted);flex-shrink:0}
-.field .v{flex:1;word-break:break-word}
-.desc{font-size:13px;line-height:1.7;color:#444;margin-top:4px;white-space:pre-wrap}
-.back{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--accent)}
+.field .k{width:78px;color:var(--muted);flex:0 0 auto}
+.field .v{flex:1;word-break:break-word;min-width:0}
+.desc{font-size:13px;line-height:1.7;color:#444;margin-top:6px;white-space:pre-wrap;word-break:break-word}
+.back{display:inline-block;margin-bottom:10px;font-size:13px;color:var(--accent);padding:6px 2px}
 .detail-wrap{min-width:0}
+.pricebox{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.pricebox .p{font-size:24px;font-weight:800;color:var(--red)}
+.pricebox .p small{font-size:13px;font-weight:600}
+.photo{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:10px;background:#eef1f4;display:block;margin-bottom:10px}
+.btnrow{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btnrow a,.btnrow button{flex:1 1 auto;text-align:center;border-radius:10px;padding:11px 14px;font-size:14px;border:1px solid var(--line);background:#fff;color:var(--blue)}
+.btnrow a.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+
 table{width:100%;border-collapse:collapse;font-size:13px;background:#fff}
 th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;white-space:nowrap}
 th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
 .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px;border:1px solid var(--line)}
 .empty{padding:40px;text-align:center;color:var(--muted)}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(92px,1fr));gap:8px;margin-bottom:12px}
 .kpi{background:#f0f4f9;border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
 .kpi .n{font-size:18px;font-weight:700;color:var(--blue)}
-.kpi .n.hl{color:#d23b2e}
+.kpi .n.hl{color:var(--red)}
 .kpi .lab{font-size:11px;color:var(--muted);margin-top:2px}
-.ybars{display:flex;align-items:flex-end;gap:6px;height:90px;margin-top:6px}
-.ybar{flex:1;min-width:20px;background:linear-gradient(180deg,#e67e22,#c55a11);border-radius:4px 4px 0 0;position:relative}
+.ybars{display:flex;align-items:flex-end;gap:6px;height:90px;margin-top:6px;overflow-x:auto;padding-bottom:18px}
+.ybar{flex:1;min-width:26px;background:linear-gradient(180deg,#e67e22,#c55a11);border-radius:4px 4px 0 0;position:relative}
 .ybar .yl{position:absolute;bottom:-16px;left:0;right:0;text-align:center;font-size:10px;color:var(--muted)}
 .ybar .yv{position:absolute;top:-16px;left:0;right:0;text-align:center;font-size:10px;color:#555}
 .cmprow input{width:15px;height:15px;accent-color:var(--accent)}
-.cmpx{position:fixed;left:12px;right:12px;bottom:64px;z-index:40;max-width:640px;margin:0 auto;background:var(--accent);color:#fff;border:none;border-radius:24px;padding:11px;font-size:14px;cursor:pointer;box-shadow:0 4px 14px rgba(230,126,34,.4)}
+.cmpx{position:fixed;left:12px;right:12px;bottom:calc(var(--navh) + var(--safe) + 8px);z-index:40;max-width:640px;margin:0 auto;
+  background:var(--accent);color:#fff;border:none;border-radius:24px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;
+  box-shadow:0 4px 14px rgba(230,126,34,.45)}
 .cmpbox{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.cmpbox table{white-space:normal}
-.cmpbox td,.cmpbox th{white-space:normal;vertical-align:top;min-width:110px}
 .selrow{font-size:13px;background:#fff;border:1px solid var(--line);border-radius:10px;padding:9px 10px;margin:6px 0;cursor:pointer}
-.selrow .pm{color:#d23b2e;font-weight:700}
-/* ---------- 移动端 / 平板（≤900px） ---------- */
+.selrow .pm{color:var(--red);font-weight:700}
+
+/* ---------- 移动端「表格变卡片」共用样式 ---------- */
+.rowcard{background:#fff;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-bottom:8px}
+.rowcard.cur{border-color:var(--accent);background:#fff8f2}
+.rowcard .rc-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.rowcard .rc-t{font-size:13.5px;font-weight:600;line-height:1.4;flex:1;min-width:0}
+.rowcard .rc-p{color:var(--red);font-weight:700;font-size:16px;white-space:nowrap}
+.rowcard .rc-meta{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.6}
+.rowcard .rc-meta b{color:#3a6ea5;font-weight:600}
+.rc-check{display:flex;align-items:center;gap:10px}
+.rc-check input{width:20px;height:20px;accent-color:var(--accent);flex:0 0 auto}
+.tapnote{font-size:11.5px;color:var(--muted);margin-bottom:8px}
+
+/* 回到顶部 */
+.totop{position:fixed;right:14px;bottom:calc(var(--navh) + var(--safe) + 66px);z-index:35;width:42px;height:42px;border-radius:50%;
+  border:1px solid var(--line);background:rgba(255,255,255,.94);color:var(--blue);font-size:18px;display:none;
+  align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.14)}
+.totop.show{display:flex}
+
+/* ---------- 平板 / 手机（≤900px） ---------- */
 @media (max-width:900px){
   .fhead{display:flex;align-items:center;justify-content:space-between;cursor:pointer;flex:1 1 100%;font-size:14px;font-weight:600;color:var(--blue);user-select:none}
   .fhead .fcount{font-size:12px;color:var(--accent);margin-left:6px;font-weight:600}
@@ -104,34 +171,39 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
   .fbody select,.fbody input{flex:1 1 calc(50% - 4px);font-size:16px;padding:10px}
   .fbody .chip,.fbody .clearall{flex:1 1 calc(50% - 4px);text-align:center;padding:10px 8px}
   .filters .clearall{margin-left:0}
-  .searchbar input{font-size:16px;padding:11px 14px}
+  .searchbar input{font-size:16px;padding:11px 36px 11px 14px}
   .searchbar button{padding:0 18px}
   .chip{padding:8px 13px}
-  .navtab a{padding:11px 0 9px}
+  .navtab a{padding:10px 0 8px}
   .count{font-size:13px}
   .grid{grid-template-columns:repeat(2,1fr);gap:10px}
-  .card .thumb{height:110px}
+  .card .t{font-size:13px;min-height:37px}
+  .card .body{padding:9px 10px}
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .photo{aspect-ratio:4/3}
 }
-@media (max-width:560px){
-  body{padding-bottom:60px}
-  .card .thumb{height:100px}
-  .card .t{font-size:13px;min-height:36px}
+@media (max-width:380px){
+  .grid{grid-template-columns:1fr}
+  .card .thumb{aspect-ratio:16/9}
+  .price{font-size:17px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
 }
+
 /* ---------- 桌面端（≥901px） ---------- */
 @media (min-width:901px){
   body{padding-bottom:0}
   .navtab{display:none}
   .topnav{display:flex}
   .top{padding:12px 22px}
-  .top .hd{align-items:center}
   .searchbar{margin-top:8px;max-width:480px}
   .grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-  .card .thumb{height:150px}
   .detail-wrap{display:grid;grid-template-columns:minmax(360px,5fr) 7fr;gap:16px;align-items:start}
   .detail-wrap .panel{margin-bottom:0}
-  .same-panel{position:sticky;top:124px;max-height:calc(100vh - 150px);overflow-y:auto}
+  .same-panel{position:sticky;top:130px;max-height:calc(100vh - 156px);overflow-y:auto}
   .cmpx{bottom:24px}
+  .totop{display:none !important}
 }
+@media (prefers-reduced-motion:reduce){*{transition:none !important}}
 </style>
 </head>
 <body>
@@ -139,12 +211,13 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
   <div class="hd">
     <div>
       <h1><span class="dot"></span>房车比价通</h1>
-      <div class="src-line">聚合 3 源在售二手房车 · 跨源同款比对</div>
+      <div class="src-line" id="srcLine">聚合 3 源在售二手房车 · 跨源同款比对</div>
     </div>
     <span class="upd" id="updLabel">更新于 --</span>
   </div>
   <div class="searchbar" id="searchBar">
-    <input id="kw" placeholder="搜索：品牌 / 车型 / 关键词" onkeydown="if(event.key==='Enter')applySearch()">
+    <input id="kw" placeholder="搜索：品牌 / 车型 / 关键词" onkeydown="if(event.key==='Enter')applySearch()" oninput="onKwInput()">
+    <button class="clr" id="kwClr" onclick="clearKw()" aria-label="清空">✕</button>
     <button onclick="applySearch()">搜索</button>
   </div>
   <nav class="topnav">
@@ -154,6 +227,7 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
 </header>
 
 <div class="wrap">
+  <div id="srcHealth"></div>
   <div id="kwbar" class="chips" style="display:none"></div>
 
   <div class="filters" id="filterPanel">
@@ -166,13 +240,14 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
     <select id="f_chassis" onchange="applyFilters()"><option value="">全部底盘品牌</option></select>
     <select id="f_ubrand" onchange="applyFilters()"><option value="">全部上装品牌</option></select>
     <select id="f_year" onchange="applyFilters()"><option value="">全部年份</option></select>
-    <input id="f_pmin" type="number" placeholder="最低价(万)" onchange="applyFilters()">
-    <input id="f_pmax" type="number" placeholder="最高价(万)" onchange="applyFilters()">
+    <input id="f_pmin" type="number" inputmode="decimal" placeholder="最低价(万)" onchange="applyFilters()">
+    <input id="f_pmax" type="number" inputmode="decimal" placeholder="最高价(万)" onchange="applyFilters()">
     <select id="f_sort" onchange="applyFilters()">
       <option value="">默认排序</option>
       <option value="price_asc">价格最低</option>
       <option value="price_desc">价格最高</option>
       <option value="year_desc">年份最新</option>
+      <option value="newest">最新挂牌</option>
     </select>
     <button id="favBtn" class="chip" onclick="toggleFavOnly(this)">♡ 只看收藏</button>
     <button class="clearall" onclick="clearAll()">✕ 清除全部</button>
@@ -199,14 +274,24 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
   <a href="javascript:void(0)" id="tabList" class="active" onclick="switchView('list')"><i>🚐</i>车源</a>
   <a href="javascript:void(0)" id="tabCompare" onclick="switchView('compare')"><i>⚖️</i>同款比价</a>
 </nav>
+<button class="totop" id="toTop" onclick="scrollTop()" aria-label="回到顶部">↑</button>
 
-<script src="data.js?v=202609170305"></script>
+<script src="data.js?v=202609180013"></script>
 <script>
 var DATA=window.RV_DATA||[];
+var SRCFRESH=window.RV_SOURCES||{};
 var SOURCES={rv28:{name:'房车猫',color:'#3a6ea5'},'21rv':{name:'21世纪房车',color:'#e67e22'},cn2rv:{name:'舒旅二手房车网',color:'#2e9e5b'}};
 var state={view:'list',kw:'',f:{src:'',type:'',chassis:'',ubrand:'',year:'',pmin:'',pmax:'',sort:''},sort:'',tid:null};
 var cmpSel=[];
 var favOnly=false, shown=60, PAGE=60;
+
+/* 小屏判定：≤900px 走"卡片式"，>900px 走表格 */
+function isNarrow(){return window.matchMedia('(max-width:900px)').matches}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+/* 老旧 WebView / 无 scrollIntoView 的环境下兜底，避免整段交互中断 */
+function scrollInto(el,opt){if(el&&typeof el.scrollIntoView==='function')el.scrollIntoView(opt||{behavior:'smooth'})}
+function scrollTop(){try{window.scrollTo({top:0})}catch(e){try{window.scrollTo(0,0)}catch(e2){}}}
+
 function getFavs(){try{return JSON.parse(localStorage.getItem('rv_favs')||'[]')}catch(e){return []}}
 function isFav(id){return getFavs().indexOf(id)>=0}
 function toggleFav(id,ev){
@@ -230,6 +315,42 @@ function dropTag(r){
 }
 
 if(window.RV_UPDATED){document.getElementById('updLabel').textContent='更新于 '+window.RV_UPDATED;}
+
+/* ---------- 数据源健康：把"抓取失败"和"上游停更"讲清楚 ---------- */
+function renderSrcHealth(){
+  var box=document.getElementById('srcHealth');
+  var stale=[],live=[];
+  Object.keys(SRCFRESH).forEach(function(k){var v=SRCFRESH[k]||{};(v.stale?stale:live).push([k,v])});
+  var line=document.getElementById('srcLine');
+  if(line){
+    var total=DATA.length;
+    var alive=live.map(function(x){return SOURCES[x[0]]?SOURCES[x[0]].name:x[0]});
+    line.innerHTML='聚合 '+Object.keys(SRCFRESH).length+' 源 · '+total.toLocaleString('zh-CN')+' 台在售'
+      +(alive.length?' · <b>'+alive.join('、')+'</b> 在持续更新':'');
+  }
+  if(!stale.length){box.innerHTML='';return}
+  var dismissed=false;
+  try{dismissed=localStorage.getItem('rv_srchealth_off')=== (window.RV_UPDATED||'').slice(0,10)}catch(e){}
+  if(dismissed){box.innerHTML='';return}
+  var items=stale.map(function(x){
+    var k=x[0],v=x[1],nm=(SOURCES[k]||{}).name||k;
+    return '<li><b>'+nm+'</b>：源站最后一条挂牌 '+esc(v.last_post||'未知')
+      +(v.stale_days!=null?('，已 <b>'+v.stale_days+' 天</b>没有新车源'):'')
+      +(v.last_run?('（本站最近巡检 '+esc(v.last_run)+'，抓取正常）'):'')+'</li>';
+  }).join('');
+  box.innerHTML='<div class="srchealth"><div class="sh-hd"><div>'
+    +'⚠ 有数据源长期没有更新<span class="sh-ok"></span></div>'
+    +'<button class="sh-x" onclick="hideSrcHealth()" aria-label="收起">✕</button></div>'
+    +'<ul>'+items+'</ul>'
+    +'<div class="sh-ok">这是<b>源站自己不再发布新车源</b>，不是抓取故障；'
+    +'本站仍会在每次刷新时巡检该源，一旦有新挂牌会立刻收录。</div></div>'
+    +'<div style="font-size:11.5px;color:var(--muted);margin:-4px 0 10px 2px">'
+    +'其余在售车源来自仍在更新的数据源，可正常浏览比价。</div>';
+}
+function hideSrcHealth(){
+  try{localStorage.setItem('rv_srchealth_off',(window.RV_UPDATED||'').slice(0,10))}catch(e){}
+  document.getElementById('srcHealth').innerHTML='';
+}
 
 function srcName(c){var s=SOURCES[c];return s?s.name:c}
 function flat(n){return n==null?'-':n}
@@ -256,12 +377,17 @@ function filtered(){var arr=DATA.filter(function(r){return matches(r,state.f)});
   if(s==='price_asc')arr.sort(function(a,b){return (a.price||1e9)-(b.price||1e9)});
   else if(s==='price_desc')arr.sort(function(a,b){return (b.price||0)-(a.price||0)});
   else if(s==='year_desc')arr.sort(function(a,b){var d=(rangeYear(b)||0)-(rangeYear(a)||0);return d||((a.price||0)-(b.price||0))});
+  else if(s==='newest')arr.sort(function(a,b){var d=String(b.posted_at||'').localeCompare(String(a.posted_at||''));return d||((a.price||0)-(b.price||0))});
   return arr;
 }
 
+/* vals=真实取值（如来源代码 rv28），labels=界面显示文案（如"房车猫"）。
+   之前这里把 label 当成 option 的 value，导致"来源"筛选拿"房车猫"去比对 source 代码
+   "rv28"，永远筛不出结果（看起来就像该数据源一台车都没抓到）。 */
 function fillSelect(id,vals,labels,cur){
   var sel=document.getElementById(id),html='<option value="">'+sel.options[0].text+'</option>';
-  vals.forEach(function(v,i){var t=String(labels?labels[i]:v);html+='<option value="'+t.replace(/"/g,'&quot;')+'" '+(cur===t?'selected':'')+'>'+t+'</option>';});
+  vals.forEach(function(v,i){var lab=String(labels?labels[i]:v);
+    html+='<option value="'+esc(v)+'" '+(cur===String(v)?'selected':'')+'>'+esc(lab)+'</option>';});
   sel.innerHTML=html;
 }
 function initFilters(){
@@ -293,12 +419,26 @@ function updateFCount(){
   if(favOnly)n++;
   var el=document.getElementById('fCount');
   if(el)el.textContent=n?(' · '+n+' 项生效'):'';
+  // 手机端面板收起时，把生效条件平铺出来，避免"筛完不知道筛了啥"
+  var fb=document.getElementById('fbodyChips');
+  var panel=document.getElementById('filterPanel');
+  var names={src:'来源',type:'类型',chassis:'底盘',ubrand:'上装',year:'年份',pmin:'最低价',pmax:'最高价',sort:'排序'};
+  var on=[];
+  for(k in state.f)if(state.f[k]&&k!=='sort')on.push(names[k]+'：'+(k==='src'?srcName(state.f[k]):state.f[k]));
+  if(favOnly)on.push('只看收藏');
+  var need=isNarrow()&&on.length&&!panel.classList.contains('open');
+  if(!fb){fb=document.createElement('div');fb.id='fbodyChips';fb.className='chips';panel.parentNode.insertBefore(fb,panel.nextSibling)}
+  fb.style.display=need?'flex':'none';
+  fb.innerHTML=need?on.map(function(t){return '<span class="chip on">'+esc(t)+'</span>'}).join('')
+    +'<button class="chip" onclick="clearAll()">清除</button>':'';
 }
 function applyFilters(){readFilters();renderList()}
 function applySearch(){state.kw=document.getElementById('kw').value.trim();renderList()}
+function onKwInput(){document.getElementById('searchBar').classList.toggle('has-kw',!!document.getElementById('kw').value)}
+function clearKw(){var i=document.getElementById('kw');i.value='';state.kw='';onKwInput();renderList()}
 function clearAll(){
   state.f={src:'',type:'',chassis:'',ubrand:'',year:'',pmin:'',pmax:'',sort:''};
-  state.kw='';document.getElementById('kw').value='';
+  state.kw='';document.getElementById('kw').value='';onKwInput();
   initFilters();renderList();
 }
 function goList(){state.tid=null;switchView('list')}
@@ -309,21 +449,21 @@ function renderList(){
   if(state.tid)shown=PAGE;
   document.getElementById('countLine').textContent='共 '+arr.length+' 台在售'+(SOURCES[state.f.src]?' · 来源 '+SOURCES[state.f.src].name:'')+(favOnly?' · 只看收藏':'');
   var kws=document.getElementById('kwbar');
-  if(state.kw){kws.style.display='flex';kws.innerHTML='<span class="chip on" onclick="clearAll()">“'+state.kw+'” ✕</span>';}
+  if(state.kw){kws.style.display='flex';kws.innerHTML='<span class="chip on" onclick="clearAll()">“'+esc(state.kw)+'” ✕</span>';}
   else kws.style.display='none';
   var box=document.getElementById('gridList');
   if(!arr.length){box.innerHTML='<div class="empty">暂无符合条件的车源<div style="margin-top:10px"><button class="clearall" onclick="clearAll()">清除全部筛选</button></div></div>';return}
   var slice=arr.slice(0,shown);
   box.innerHTML=slice.map(function(r){
-    var img=r.image_url?'<img src="'+r.image_url+'" loading="lazy" onerror="this.style.display=\'none\'">':'';
+    var img=r.image_url?'<img src="'+esc(r.image_url)+'" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">':'';
     var tags=(r.tags||'').split('、').filter(Boolean).map(function(t){return ' · '+t}).join('');
     var fav=isFav(r.tid);
     return '<div class="card" onclick="openDetail(\''+r.tid+'\')">'
       +'<div class="thumb">'+srcTag(r)+dropTag(r)
       +'<span class="favheart'+(fav?' on':'')+'" onclick="toggleFav(\''+r.tid+'\',event)">'+(fav?'❤':'♡')+'</span>'
       +img+'</div>'
-      +'<div class="body"><div class="t">'+r.title+'</div>'
-      +'<div class="meta">'+(r.brand||'')+(r.location?' · '+r.location:'')+tags+'</div>'
+      +'<div class="body"><div class="t">'+esc(r.title)+'</div>'
+      +'<div class="meta">'+esc((r.brand||'')+(r.location?' · '+r.location:'')+tags)+'</div>'
       +'<div class="btm"><span class="price">'+fmtP(r.price)+'</span><span class="sale">'+flat(rangeYear(r))+'年 · '+fmtM(r.mileage_km)+'</span></div>'
       +'</div></div>';
   }).join('')
@@ -333,31 +473,52 @@ function renderList(){
 function openDetail(tid){
   var r=DATA.find(function(x){return x.tid===tid});if(!r)return;
   state.tid=tid;state.view='detail';showView('detail');
-  var fields=[['来源',srcName(r.source)],['挂牌价',fmtP(r.price)],['上牌年份',rangeYear(r)||'-'],['上牌时间',r.reg_date||'-'],
+  var fields=[['来源',srcName(r.source)],['上牌年份',rangeYear(r)||'-'],['上牌时间',r.reg_date||'-'],
     ['行驶里程',fmtM(r.mileage_km)],['排放标准',r.emission||'-'],['过户次数',r.transfer_count||'-'],
     ['使用性质',r.usage_type||'-'],['所在地',r.location||'-'],['底盘品牌',r.chassis_brand||'-'],
-    ['底盘型号',r.chassis_model||'-'],['上装品牌',r.brand||'-'],['车型类型',r.rv_type||'-']];
-  document.getElementById('detailBox').innerHTML='<div class="panel"><h2>'+r.title+'</h2>'+
-    fields.map(function(f){return '<div class="field"><span class="k">'+f[0]+'</span><span class="v">'+f[1]+'</span></div>'}).join('')+
-    (r.description?'<div class="desc">'+r.description+'</div>':'')+
-    (r.url?'<div style="margin-top:10px"><a style="color:#3a6ea5" href="'+r.url+'" target="_blank" rel="noopener">在'+srcName(r.source)+'查看原文 ↗</a></div>':'')+'</div>';
+    ['底盘型号',r.chassis_model||'-'],['上装品牌',r.brand||'-'],['车型类型',r.rv_type||'-'],
+    ['源站挂牌',r.posted_at||'-']];
+  document.getElementById('detailBox').innerHTML='<div class="panel">'
+    +(r.image_url?'<img class="photo" src="'+esc(r.image_url)+'" alt="'+esc(r.title)+'" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">':'')
+    +'<h2>'+esc(r.title)+'</h2>'
+    +'<div class="pricebox"><span class="p">'+fmtP(r.price)+'</span>'
+    +(r.tags?'<span class="sale">'+esc(r.tags)+'</span>':'')+'</div>'
+    +fields.map(function(f){return '<div class="field"><span class="k">'+f[0]+'</span><span class="v">'+esc(f[1])+'</span></div>'}).join('')
+    +(r.description?'<div class="desc">'+esc(r.description)+'</div>':'')
+    +'<div class="btnrow">'
+    +(r.url?'<a class="primary" href="'+esc(r.url)+'" target="_blank" rel="noopener">在'+srcName(r.source)+'看原文 ↗</a>':'')
+    +'<button onclick="goList()">返回列表</button>'
+    +'</div></div>';
   renderSame(r);
+  scrollTop();
 }
 function renderSame(cur){
   var cm=cur.chassis_model,box=document.getElementById('sameBox');
   if(!cm){box.innerHTML='<div class="empty">该车未识别出底盘型号，无法聚合同款</div>';return}
   var arr=DATA.filter(function(r){return r.chassis_model===cm&&r.price!=null});
-  box.innerHTML='<div class="count" id="sameCount"></div><div class="tblwrap"><table id="sameTbl"></table></div>';
   var ps=arr.map(function(x){return x.price});
   var min=Math.min.apply(null,ps),max=Math.max.apply(null,ps),avg=ps.reduce(function(s,x){return s+x},0)/ps.length;
-  document.getElementById('sameCount').textContent='同底盘「'+cm+'」共 '+arr.length+' 台 · 最低 ¥'+min.toFixed(1)+'万 / 均价 ¥'+avg.toFixed(1)+'万 / 最高 ¥'+max.toFixed(1)+'万';
+  var head='<div class="count">同底盘「'+esc(cm)+'」共 '+arr.length+' 台 · 最低 ¥'+min.toFixed(1)+'万 / 均价 ¥'+avg.toFixed(1)+'万 / 最高 ¥'+max.toFixed(1)+'万</div>';
+  var sorted=arr.slice().sort(function(a,b){return (b.reg_year||0)-(a.reg_year||0)});
+  if(isNarrow()){
+    // 手机：宽表换成卡片，避免 7 列表格横向拖动
+    box.innerHTML=head+'<div class="tapnote">点卡片可直接切到该车详情</div>'+sorted.map(function(x){
+      var isCur=x.tid===cur.tid;
+      return '<div class="rowcard'+(isCur?' cur':'')+'"'+(isCur?'':' onclick="openDetail(\''+x.tid+'\')"')+'>'
+        +'<div class="rc-top"><div class="rc-t">'+esc(x.title)+(isCur?' <span style="color:#e67e22">（当前）</span>':'')+'</div>'
+        +'<div class="rc-p">'+x.price.toFixed(1)+'万</div></div>'
+        +'<div class="rc-meta"><b>'+srcName(x.source)+'</b> · '+(rangeYear(x)||'-')+'年 · '+fmtM(x.mileage_km)
+        +' · '+esc(x.location||'-')+(x.brand?' · '+esc(x.brand):'')+'</div></div>';
+    }).join('');
+    return;
+  }
   var s='<tr><th>车源</th><th>来源</th><th>品牌</th><th>年份</th><th>里程</th><th>所在地</th><th>价格(万)</th></tr>';
-  arr.sort(function(a,b){return (b.reg_year||0)-(a.reg_year||0)}).forEach(function(x){
+  sorted.forEach(function(x){
     var cls=(x.tid===cur.tid)?' style="background:#fff3ec"':'';
-    var t=(x.tid===cur.tid)?x.title+'（当前）':'<a style="color:#1e3a5f" href="javascript:void(0)" onclick="openDetail(\''+x.tid+'\')">'+x.title+'</a>';
-    s+='<tr'+cls+'><td>'+t+'</td><td>'+srcName(x.source)+'</td><td>'+(x.brand||'-')+'</td><td>'+(rangeYear(x)||'-')+'</td><td>'+fmtM(x.mileage_km)+'</td><td>'+(x.location||'-')+'</td><td style="white-space:nowrap">'+x.price.toFixed(1)+'万</td></tr>';
+    var t=(x.tid===cur.tid)?esc(x.title)+'（当前）':'<a style="color:#1e3a5f" href="javascript:void(0)" onclick="openDetail(\''+x.tid+'\')">'+esc(x.title)+'</a>';
+    s+='<tr'+cls+'><td>'+t+'</td><td>'+srcName(x.source)+'</td><td>'+esc(x.brand||'-')+'</td><td>'+(rangeYear(x)||'-')+'</td><td>'+fmtM(x.mileage_km)+'</td><td>'+esc(x.location||'-')+'</td><td style="white-space:nowrap">'+x.price.toFixed(1)+'万</td></tr>';
   });
-  document.getElementById('sameTbl').innerHTML=s;
+  box.innerHTML=head+'<div class="tblwrap"><table>'+s+'</table></div>';
 }
 
 /* ---------- 同款比价（增强） ---------- */
@@ -372,20 +533,31 @@ function renderCompare(){
     return (pa-pb)||a.localeCompare(b,'zh');});
   var bm=topUbBrands();
   var html='<div class="panel"><h2>上装品牌速览（按车源数）</h2><div class="kpis">'+
-    bm.map(function(b){return '<div class="kpi"><div class="n">'+b.c+'</div><div class="lab">'+b.b+' · 均价'+b.avg+'万</div></div>'}).join('')+'</div></div>';
+    bm.map(function(b){return '<div class="kpi"><div class="n">'+b.c+'</div><div class="lab">'+esc(b.b)+' · 均价'+b.avg+'万</div></div>'}).join('')+'</div></div>';
 
   html+='<div class="panel"><h2>同款比价（按底盘型号聚合）</h2>'
     +'<div class="chips">'
     +'<select id="c_sort" onchange="readCmpSort()"><option value="count" '+(cmpSortKey==='count'?'selected':'')+'>按车源数</option><option value="median" '+(cmpSortKey==='median'?'selected':'')+'>按均价</option></select>'
-    +'<span style="font-size:12px;color:var(--muted)">点击「型号」进入组内逐项比对</span></div>'
-    +'<div class="tblwrap"><table><tr><th>底盘型号</th><th>车源</th><th>来源</th><th>年份</th><th>最低(万)</th><th>均价(万)</th><th>中位(万)</th><th>最高(万)</th></tr>';
-  if(!keys.length)html+='<tr><td colspan="8">暂无数据</td></tr>';
+    +'<span style="font-size:12px;color:var(--muted)">点击「型号」进入组内逐项比对</span></div>';
+  var rows='';
+  if(!keys.length)rows='<tr><td colspan="8">暂无数据</td></tr>';
   keys.forEach(function(m){var a=groups[m],ps=a.map(function(x){return x.price}).sort(function(p,q){return p-q});
     var avg=ps.reduce(function(s,p){return s+p},0)/ps.length,srcs={};a.forEach(function(x){srcs[x.source]=1});
     var ys=a.map(rangeYear).filter(Boolean),mn=ys.length?Math.min.apply(null,ys):0,mx=ys.length?Math.max.apply(null,ys):0;
-    html+='<tr><td style="font-weight:600"><a href="javascript:void(0)" onclick="openCmpGroup(\''+m.replace(/'/g,'\\\'')+'\')">'+m+'</a></td><td>'+a.length+'</td><td>'+(Object.keys(srcs).length)+'</td><td>'+(mn?mn+'-'+mx:'-')+'</td><td>'+ps[0].toFixed(1)+'</td><td>'+avg.toFixed(1)+'</td><td>'+median(ps).toFixed(1)+'</td><td>'+ps[ps.length-1].toFixed(1)+'</td></tr>';
+    if(isNarrow()){
+      // 手机：一行一台车型，价格区间代替 4 个价格列
+      rows+='<div class="rowcard" onclick="openCmpGroup(\''+esc(m).replace(/'/g,"\\'")+'\')">'
+        +'<div class="rc-top"><div class="rc-t">'+esc(m)+' <span style="color:var(--muted);font-weight:400">· '+Object.keys(srcs).length+' 源</span></div>'
+        +'<div class="rc-p">'+ps[0].toFixed(1)+'–'+ps[ps.length-1].toFixed(1)+'万</div></div>'
+        +'<div class="rc-meta">'+a.length+' 台在售 · 均价 '+avg.toFixed(1)+'万 · 中位 '+median(ps).toFixed(1)+'万'
+        +(mn?' · '+(mn===mx?mn:mn+'-'+mx)+'年':'')+'</div></div>';
+    }else{
+      rows+='<tr><td style="font-weight:600"><a href="javascript:void(0)" onclick="openCmpGroup(\''+m.replace(/'/g,'\\\'')+'\')">'+esc(m)+'</a></td><td>'+a.length+'</td><td>'+(Object.keys(srcs).length)+'</td><td>'+(mn?mn+'-'+mx:'-')+'</td><td>'+ps[0].toFixed(1)+'</td><td>'+avg.toFixed(1)+'</td><td>'+median(ps).toFixed(1)+'</td><td>'+ps[ps.length-1].toFixed(1)+'</td></tr>';
+    }
   });
-  html+='</table></div></div>';
+  html+=isNarrow()?rows
+    :'<div class="tblwrap"><table><tr><th>底盘型号</th><th>车源</th><th>来源</th><th>年份</th><th>最低(万)</th><th>均价(万)</th><th>中位(万)</th><th>最高(万)</th></tr>'+rows+'</table></div>';
+  html+='</div>';
   document.getElementById('viewCompare').innerHTML=html;
 }
 function readCmpSort(){var sel=document.getElementById('c_sort');if(sel)cmpSortKey=sel.value;renderCompare()}
@@ -394,7 +566,7 @@ function topUbBrands(){
   return Object.keys(b).map(function(k){return {b:k,c:b[k].length,avg:(b[k].reduce(function(s,p){return s+p},0)/b[k].length).toFixed(1)}})
     .sort(function(x,y){return y.c-x.c}).slice(0,6);
 }
-function openCmpGroup(m){cmpCur=m;renderCmpDetail()}
+function openCmpGroup(m){cmpCur=m;renderCmpDetail();scrollTop()}
 function backCmp(){cmpCur=null;renderCompare()}
 function renderCmpDetail(){
   var m=cmpCur;var arr=DATA.filter(function(r){return r.chassis_model===m&&r.price!=null});
@@ -419,9 +591,9 @@ function renderCmpDetail(){
   else out.sort(function(a,b){return (b.reg_year||0)-(a.reg_year||0)});
 
   var html='<a class="back" href="javascript:void(0)" onclick="backCmp()">← 全部车型</a>';
-  html+='<div class="panel"><h2>「'+m+'」同款比对</h2>'
+  html+='<div class="panel"><h2>「'+esc(m)+'」同款比对</h2>'
     +'<div class="chips">'
-    +'<select id="cbrand" onchange="cmpG.cbrand=this.value;renderCmpDetail()"><option value="">全部上装品牌</option>'+Object.keys(brands).sort().map(function(b){return '<option value="'+b+'" '+(cmpG.cbrand===b?'selected':'')+'>'+b+'</option>'}).join('')+'</select>'
+    +'<select id="cbrand" onchange="cmpG.cbrand=this.value;renderCmpDetail()"><option value="">全部上装品牌</option>'+Object.keys(brands).sort().map(function(b){return '<option value="'+esc(b)+'" '+(cmpG.cbrand===b?'selected':'')+'>'+esc(b)+'</option>'}).join('')+'</select>'
     +'<select id="cyear" onchange="cmpG.cyear=this.value;renderCmpDetail()"><option value="">全部年份</option>'+ys.map(function(y){return '<option value="'+y+'" '+(cmpG.cyear===String(y)?'selected':'')+'>'+y+'年</option>'}).join('')+'</select>'
     +'<select id="csort" onchange="cmpG.sort=this.value;renderCmpDetail()"><option value="year" '+(so==='year'?'selected':'')+'>年份新旧</option><option value="price_asc" '+(so==='price_asc'?'selected':'')+'>价格升序</option><option value="price_desc" '+(so==='price_desc'?'selected':'')+'>价格降序</option></select>'
     +'</div>'
@@ -433,14 +605,28 @@ function renderCmpDetail(){
     +'<div class="kpi"><div class="n">'+out.length+'</div><div class="lab">筛选后车源</div>'
     +'</div>'
     +'<div class="count" style="margin-bottom:2px">各上牌年份 · 在售车源数</div>'
-    +'<div class="ybars">'+(ybars||'<div class="empty">暂无</div>')+'</div>'
-    +'<div class="tblwrap"><table><tr><th></th><th>年份</th><th>上装品牌</th><th>里程</th><th>所在地</th><th>价格(万)</th></tr>';
-  out.forEach(function(x){var hl=x.price===min?' style="background:#fff3ec"':'';
-    html+='<tr'+hl+'><td><input type="checkbox" class="cmpchk" data-tid="'+x.tid+'" onchange="toggleCmp(\''+x.tid+'\',this)"></td><td>'+(rangeYear(x)||'-')+'</td><td>'+x.title+'</td><td>'+fmtM(x.mileage_km)+'</td><td>'+(x.location||'-')+'</td><td style="white-space:nowrap;color:#d23b2e">'+x.price.toFixed(1)+'</td></tr>';
-  });
-  html+='</table></div>'
-    +'<div class="count" style="margin-top:8px">勾选 2–3 台点击下方「对比选中」，可逐项并排查看</div>'
-    +'</div>';
+    +'<div class="ybars">'+(ybars||'<div class="empty">暂无</div>')+'</div>';
+  if(isNarrow()){
+    html+='<div class="tapnote">勾选 2–3 台，再点右下「对比选中」</div>';
+    html+=out.map(function(x){var hl=x.price===min;
+      return '<div class="rowcard'+(hl?' cur':'')+'"><div class="rc-check">'
+        +'<input type="checkbox" class="cmpchk" data-tid="'+x.tid+'" onchange="toggleCmp(\''+x.tid+'\',this)">'
+        +'<div style="flex:1;min-width:0">'
+        +'<div class="rc-top"><div class="rc-t">'+esc(x.title)+'</div><div class="rc-p">'+x.price.toFixed(1)+'万</div></div>'
+        +'<div class="rc-meta">'+(rangeYear(x)||'-')+'年 · '+fmtM(x.mileage_km)+' · '+esc(x.location||'-')
+        +' · <b>'+srcName(x.source)+'</b>'+(hl?' <span style="color:var(--red)">最低价</span>':'')
+        +'</div></div></div></div>';
+    }).join('')
+    +'<div class="count" style="margin-top:8px">勾选 2–3 台点击下方「对比选中」，可逐项并排查看</div>';
+  }else{
+    html+='<div class="tblwrap"><table><tr><th></th><th>年份</th><th>上装品牌</th><th>里程</th><th>所在地</th><th>价格(万)</th></tr>';
+    out.forEach(function(x){var hl=x.price===min?' style="background:#fff3ec"':'';
+      html+='<tr'+hl+'><td><input type="checkbox" class="cmpchk" data-tid="'+x.tid+'" onchange="toggleCmp(\''+x.tid+'\',this)"></td><td>'+(rangeYear(x)||'-')+'</td><td>'+esc(x.title)+'</td><td>'+fmtM(x.mileage_km)+'</td><td>'+esc(x.location||'-')+'</td><td style="white-space:nowrap;color:#d23b2e">'+x.price.toFixed(1)+'</td></tr>';
+    });
+    html+='</table></div>'
+      +'<div class="count" style="margin-top:8px">勾选 2–3 台点击下方「对比选中」，可逐项并排查看</div>';
+  }
+  html+='</div>';
   document.getElementById('viewCompare').innerHTML=html;
 }
 function toggleCmp(tid,el){
@@ -454,12 +640,21 @@ function openCmpBox(){
   if(cmpSel.length<1)return;
   var list=cmpSel.map(function(t){return DATA.find(function(x){return x.tid===t})}).filter(Boolean);
   var rows=[['来源',function(r){return srcName(r.source)}],['车源',function(r){return r.title}],['上装品牌',function(r){return r.brand||'-'}],['底盘型号',function(r){return r.chassis_model||'-'}],['年份',function(r){return rangeYear(r)||'-'}],['里程',function(r){return fmtM(r.mileage_km)}],['排放',function(r){return r.emission||'-'}],['过户',function(r){return r.transfer_count||'-'}],['类型',function(r){return r.rv_type||'-'}],['所在地',function(r){return r.location||'-'}],['价格',function(r){return '¥'+r.price.toFixed(1)+'万'}]];
-  var h='<table><tr><th style="background:#fff">字段</th>'+list.map(function(r){return '<th>'+srcName(r.source)+'</th>'}).join('')+'</tr>';
-  h+=rows.map(function(row){return '<tr><td style="background:#eef2f6;color:#1e3a5f;font-weight:600">'+row[0]+'</td>'+list.map(function(r){return '<td>'+row[1](r)+'</td>'}).join('')+'</tr>'}).join('')+'</table>';
+  var h;
+  if(isNarrow()){
+    // 手机：每台车一张卡，逐项列出，避免横向拖 4 列表格
+    h=list.map(function(r){return '<div class="rowcard"><div class="rc-top"><div class="rc-t">'+esc(srcName(r.source))+'</div>'
+      +'<div class="rc-p">¥'+r.price.toFixed(1)+'万</div></div>'
+      +rows.map(function(row){return '<div class="rc-meta">'+row[0]+'：'+esc(row[1](r))+'</div>'}).join('')
+      +'</div>'}).join('');
+  }else{
+    h='<table><tr><th style="background:#fff">字段</th>'+list.map(function(r){return '<th>'+srcName(r.source)+'</th>'}).join('')+'</tr>';
+    h+=rows.map(function(row){return '<tr><td style="background:#eef2f6;color:#1e3a5f;font-weight:600">'+row[0]+'</td>'+list.map(function(r){return '<td>'+esc(row[1](r))+'</td>'}).join('')+'</tr>'}).join('')+'</table>';
+  }
   var box=document.getElementById('cmpbox');
   if(!box){box=document.createElement('div');box.id='cmpbox';box.className='panel';document.getElementById('viewCompare').appendChild(box)}
   box.innerHTML='<h2 style="font-size:16px;color:#1e3a5f">并排对比</h2><div class="cmpbox">'+h+'</div><div class="chips" style="margin-top:10px"><button class="clearall" onclick="document.getElementById(\'cmpbox\').remove()">关闭对比</button></div>';
-  box.scrollIntoView({behavior:'smooth'});
+  scrollInto(box);
 }
 
 function showView(v){
@@ -470,6 +665,9 @@ function showView(v){
   document.getElementById('searchBar').style.display=(isList?'':'none');
   document.getElementById('kwbar').style.display=(isList?document.getElementById('kwbar').style.display:'none');
   document.getElementById('filterPanel').style.display=(isList?'':'none');
+  var srcbox=document.getElementById('srcHealth');
+  if(srcbox)srcbox.style.display=(isList?'':'none');
+  var fc=document.getElementById('fbodyChips');if(fc&&!isList)fc.style.display='none';
   var act={list:'tabList',compare:'tabCompare'}[v]||'tabList';
   var actTop={list:'tabTopList',compare:'tabTopCompare'}[v]||'tabTopList';
   ['tabList','tabCompare'].forEach(function(id){document.getElementById(id).className=(id===act)?'active':''});
@@ -477,16 +675,32 @@ function showView(v){
   var navDisp=(v==='detail')?'none':'';
   document.querySelector('.navtab').style.display=navDisp;
   var tn=document.querySelector('.topnav');if(tn)tn.style.display=navDisp;
+  var bt=document.getElementById('toTop');if(bt&&v!=='list')bt.classList.remove('show');
 }
-function cap(s){return s.charAt(0).toUpperCase()+s.slice(1)}
 function switchView(v){
   state.view=v;cmpSel=[];
   var fx=document.getElementById('cmpx');if(fx)fx.style.display='none';
   if(v==='compare')renderCompare();
   showView(v);
   if(v==='list'){initFilters();renderList()}
+  scrollTop();
 }
-initFilters();renderList();
+
+/* 回到顶部：仅手机列表页滚动一定距离后出现 */
+var toTop=document.getElementById('toTop');
+window.addEventListener('scroll',function(){
+  if(!toTop)return;
+  var on=isNarrow()&&state.view==='list'&&window.scrollY>600;
+  toTop.classList.toggle('show',on);
+},{passive:true});
+/* 屏幕旋转/窗口变化时重绘（表格/卡片切换） */
+var lastNarrow=isNarrow();
+window.addEventListener('resize',function(){
+  var n=isNarrow();
+  if(n!==lastNarrow){lastNarrow=n;if(state.view==='compare')renderCompare();else if(state.view==='detail'&&state.tid)openDetail(state.tid);}
+});
+
+renderSrcHealth();initFilters();renderList();
 </script>
 </body>
 </html>

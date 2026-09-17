@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 """把 rv.db 导出为静态站点数据 docs/data.js（供 GitHub Pages 手机/电脑访问）
 只导出展示所需字段，省略超大原始配置，控制体积便于移动端加载。
+
+除了车源数组，还导出 window.RV_SOURCES（各数据源新鲜度），
+让页面能提示"某数据源已停更"，避免用户误以为是本站抓取坏了。
 """
 import datetime
 import json
@@ -17,11 +20,14 @@ FIELDS = [
     "tid", "source", "url", "title", "price", "mileage_km",
     "reg_year", "reg_date", "emission", "transfer_count",
     "usage_type", "location", "chassis_brand", "chassis_model", "brand",
-    "rv_type", "tags", "image_url", "description",
+    "rv_type", "tags", "image_url", "description", "posted_at",
 ]
 
 # 描述截断长度（前端仅在详情页展示，短一点足够识别车况；可用环境变量 RV_DESC_LEN 覆盖）
 DESC_LEN = int(os.environ.get("RV_DESC_LEN", "150"))
+
+# 超过这个天数没有新挂牌，就在页面上提示"该源已停更"
+STALE_DAYS = int(os.environ.get("RV_STALE_DAYS", "14"))
 
 
 def main():
@@ -39,13 +45,27 @@ def main():
             rec["description"] = rec["description"][:DESC_LEN] + "…"
         out.append(rec)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = datetime.datetime.now()
+    updated = now.strftime("%Y-%m-%d %H:%M")
+
+    # 数据源新鲜度：条数 / 最后入库 / 源站最新挂牌 / 停更天数 / 是否告警
+    sources = database.source_freshness()
+    for k, v in sources.items():
+        v["stale"] = bool(v.get("stale_days") is not None and v["stale_days"] > STALE_DAYS)
+    by_src = {r["source"]: r["n"] for r in database.sources()}
+    for k, n in by_src.items():
+        sources.setdefault(k, {})["n"] = n
+    fresh = [v["last_post"] for v in sources.values() if v.get("last_post")]
+    overall_latest = max(fresh) if fresh else ""
+
     with open(OUT, "w", encoding="utf-8") as f:
         f.write("window.RV_UPDATED = %r;\n" % updated)
+        f.write("window.RV_SOURCES = " + json.dumps(sources, ensure_ascii=False) + ";\n")
         f.write("window.RV_DATA = " + json.dumps(out, ensure_ascii=False) + ";\n")
+
     # 缓存破除：把 index.html 里 data.js 的加载网址加上版本号，
     # 否则浏览器/CDN 会一直复用旧文件，页面显示不到本次新数据
-    ver = datetime.datetime.now().strftime("%Y%m%d%H%M")
+    ver = now.strftime("%Y%m%d%H%M")
     idx_html = os.path.join(HERE, "docs", "index.html")
     if os.path.exists(idx_html):
         html = open(idx_html, encoding="utf-8").read()
@@ -55,11 +75,13 @@ def main():
             with open(idx_html, "w", encoding="utf-8") as f:
                 f.write(new_html)
     size = os.path.getsize(OUT) / 1024
-    by_src = {}
-    for r in out:
-        by_src[r["source"]] = by_src.get(r["source"], 0) + 1
     print(f"导出 {len(out)} 台 -> docs/data.js  ({size:.0f} KB)  更新于 {updated}")
     print("分源:", by_src)
+    print("数据源最新挂牌:", overall_latest)
+    for k, v in sorted(sources.items(), key=lambda kv: -(kv[1].get("n") or 0)):
+        flag = "⚠停更" if v.get("stale") else "正常"
+        print(f"  {k:<6} {v.get('n', 0):>5} 台 | 源站最新挂牌 {v.get('last_post') or '未知':<10} "
+              f"| 停更 {v.get('stale_days')} 天 | {flag}")
 
 
 if __name__ == "__main__":

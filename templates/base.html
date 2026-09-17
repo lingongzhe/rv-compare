@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>{% block title %}二手房车聚合比价{% endblock %}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚐</text></svg>">
 <style>
@@ -162,7 +162,8 @@ tbody tr:hover { background:rgba(58,120,216,.05); }
 /* ---------- 多选对比浮条 ---------- */
 .cmp-bar { position:fixed; bottom:0; left:0; right:0; z-index:120;
   background:var(--card); box-shadow:0 -4px 20px rgba(20,35,60,.18);
-  padding:10px 20px; display:none; align-items:center; justify-content:center;
+  padding:10px 20px calc(10px + env(safe-area-inset-bottom, 0px));
+  display:none; align-items:center; justify-content:center;
   gap:14px; flex-wrap:wrap; }
 .cmp-bar.show { display:flex; }
 .cmp-bar .names { font-size:13px; color:var(--muted); max-width:55%; overflow:hidden;
@@ -175,9 +176,12 @@ tbody tr:hover { background:rgba(58,120,216,.05); }
   border:1px solid var(--line); font-size:13px; }
 .pager a:hover { border-color:var(--primary); color:var(--primary); }
 .pager span.cur { background:var(--primary); color:#fff; border-color:var(--primary); }
-.footer { text-align:center; color:var(--muted); font-size:12px; padding:30px 16px 90px; }
+.footer { text-align:center; color:var(--muted); font-size:12px;
+  padding:30px 16px calc(90px + env(safe-area-inset-bottom, 0px)); }
+/* iPhone 刘海屏：底部固定元素避开安全区，内容不被浮条遮住 */
+@media(max-width:880px){ body { padding-bottom:env(safe-area-inset-bottom, 0px); } }
 .footer a { color:var(--primary); }
-.to-top { position:fixed; right:22px; bottom:70px; width:42px; height:42px;
+.to-top { position:fixed; right:22px; bottom:calc(70px + env(safe-area-inset-bottom, 0px)); width:42px; height:42px;
   border-radius:50%; background:var(--card); color:var(--primary);
   box-shadow:var(--shadow-h); border:1px solid var(--line); cursor:pointer;
   font-size:17px; display:none; align-items:center; justify-content:center; z-index:110; }
