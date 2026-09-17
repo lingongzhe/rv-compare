@@ -80,7 +80,13 @@ def main():
     print("数据源最新挂牌:", overall_latest)
     for k, v in sorted(sources.items(), key=lambda kv: -(kv[1].get("n") or 0)):
         flag = "⚠停更" if v.get("stale") else "正常"
-        print(f"  {k:<6} {v.get('n', 0):>5} 台 | 源站最新挂牌 {v.get('last_post') or '未知':<10} "
+        if v.get("basis") == "source":
+            basis = "源站最新挂牌 " + (v.get("last_post") or "?")
+        elif v.get("basis") == "local":
+            basis = "源站无发布时间，本站最近收录 " + (v.get("last_new") or "?")
+        else:
+            basis = "无时间依据"
+        print(f"  {k:<6} {v.get('n', 0):>5} 台 | {basis:<36} "
               f"| 停更 {v.get('stale_days')} 天 | {flag}")
 
 

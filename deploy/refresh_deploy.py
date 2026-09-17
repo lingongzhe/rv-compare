@@ -71,7 +71,13 @@ def report_sources():
     log("  数据源体检：")
     for src, v in sorted(fresh.items(), key=lambda kv: -(kv[1].get("n") or 0)):
         flag = "⚠停更" if (v.get("stale_days") is not None and v["stale_days"] > 14) else "正常"
-        log(f"    {src:<6} {v.get('n', 0):>5} 台 | 源站最新挂牌 {v.get('last_post') or '-':<10} "
+        if v.get("basis") == "source":
+            basis = "源站最新挂牌 " + (v.get("last_post") or "?")
+        elif v.get("basis") == "local":
+            basis = "源站无发布时间，本站最近收录 " + (v.get("last_new") or "?")
+        else:
+            basis = "无时间依据"
+        log(f"    {src:<6} {v.get('n', 0):>5} 台 | {basis:<36} "
             f"| 停更 {v.get('stale_days')} 天 | 最近巡检 {v.get('last_run') or '-'} | {flag}")
 
 

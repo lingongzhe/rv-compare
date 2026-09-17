@@ -276,7 +276,7 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
 </nav>
 <button class="totop" id="toTop" onclick="scrollTop()" aria-label="回到顶部">↑</button>
 
-<script src="data.js?v=202609180013"></script>
+<script src="data.js?v=202609180027"></script>
 <script>
 var DATA=window.RV_DATA||[];
 var SRCFRESH=window.RV_SOURCES||{};
@@ -334,16 +334,29 @@ function renderSrcHealth(){
   if(dismissed){box.innerHTML='';return}
   var items=stale.map(function(x){
     var k=x[0],v=x[1],nm=(SOURCES[k]||{}).name||k;
-    return '<li><b>'+nm+'</b>：源站最后一条挂牌 '+esc(v.last_post||'未知')
-      +(v.stale_days!=null?('，已 <b>'+v.stale_days+' 天</b>没有新车源'):'')
+    var why;
+    if(v.basis==='local'){
+      // 源站不给发布时间，只能说清是我们这边多久没收到新车源，不能断言上游停更
+      why='源站未提供发布时间，本站已 <b>'+v.stale_days+' 天</b>没有收录到新车源';
+    }else{
+      why='源站最后一条挂牌 '+esc(v.last_post||'未知')
+        +(v.stale_days!=null?('，已 <b>'+v.stale_days+' 天</b>没有新车源'):'');
+    }
+    return '<li><b>'+nm+'</b>：'+why
       +(v.last_run?('（本站最近巡检 '+esc(v.last_run)+'，抓取正常）'):'')+'</li>';
   }).join('');
+  var hasLocal=stale.some(function(x){return (x[1]||{}).basis==='local'});
+  var concl=hasLocal
+    ? '以上均<b>不是抓取故障</b>。其中标注「源站未提供发布时间」的源，'
+      +'是按本站收录时间推断的，也可能只是上游暂时没有新车源；'
+      +'本站每次刷新都会巡检，一旦有新挂牌会立刻收录。'
+    : '这是<b>源站自己不再发布新车源</b>，不是抓取故障；'
+      +'本站仍会在每次刷新时巡检该源，一旦有新挂牌会立刻收录。';
   box.innerHTML='<div class="srchealth"><div class="sh-hd"><div>'
     +'⚠ 有数据源长期没有更新<span class="sh-ok"></span></div>'
     +'<button class="sh-x" onclick="hideSrcHealth()" aria-label="收起">✕</button></div>'
     +'<ul>'+items+'</ul>'
-    +'<div class="sh-ok">这是<b>源站自己不再发布新车源</b>，不是抓取故障；'
-    +'本站仍会在每次刷新时巡检该源，一旦有新挂牌会立刻收录。</div></div>'
+    +'<div class="sh-ok">'+concl+'</div></div>'
     +'<div style="font-size:11.5px;color:var(--muted);margin:-4px 0 10px 2px">'
     +'其余在售车源来自仍在更新的数据源，可正常浏览比价。</div>';
 }

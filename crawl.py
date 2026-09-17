@@ -198,6 +198,22 @@ def parse_detail(html):
     if m:
         rec["new_price"] = float(m.group(1))
 
+    # 源站发布时间：Discuz 帖子头部 <em id="authorposton283449">发表于 2026-8-28 17:18:31</em>
+    # 用它判断"这个源还在不在发新车"，是页面停更提示的准确依据。
+    # 注意：Discuz 会把近几天的帖子渲染成相对时间（"前天 21:58"），
+    # 真实时间只在 title 属性里（title="2026-9-16 21:58:43"），所以优先读 title。
+    em = soup.find("em", id=re.compile(r"^authorposton"))
+    if em:
+        cands = [em.get("title") or ""]
+        cands += [sp.get("title") or "" for sp in em.find_all(attrs={"title": True})]
+        cands.append(em.get_text(" "))
+        for src_txt in cands:
+            dm = re.search(r"(\d{4})-(\d{1,2})-(\d{1,2})", src_txt or "")
+            if dm:
+                rec["posted_at"] = "%s-%02d-%02d" % (
+                    dm.group(1), int(dm.group(2)), int(dm.group(3)))
+                break
+
     # 参数组：行驶里程 / 排放 / 上牌时间
     for div in soup.find_all("div", class_=re.compile(r"^param_")):
         quota = div.find("p", class_=re.compile(r"quota"))
@@ -286,6 +302,7 @@ def crawl_details(session, items, force=False):
             "image_url": it["image_url"],
             "specs_json": json.dumps(d["specs"], ensure_ascii=False),
             "description": d.get("description", ""),
+            "posted_at": d.get("posted_at"),
             "fetched_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         }
         database.upsert_vehicle(rec)
