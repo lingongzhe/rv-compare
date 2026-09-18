@@ -276,7 +276,7 @@ th{background:#eef2f6;color:var(--blue);position:sticky;top:0}
 </nav>
 <button class="totop" id="toTop" onclick="scrollTop()" aria-label="回到顶部">↑</button>
 
-<script src="data.js?v=202609180304"></script>
+<script src="data.js?v=202609182300"></script>
 <script>
 var DATA=window.RV_DATA||[];
 var SRCFRESH=window.RV_SOURCES||{};
@@ -287,7 +287,11 @@ var favOnly=false, shown=60, PAGE=60;
 
 /* 小屏判定：≤900px 走"卡片式"，>900px 走表格 */
 function isNarrow(){return window.matchMedia('(max-width:900px)').matches}
-function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+/* 把字符串作为 JS 参数嵌入 onclick 这类 HTML 事件属性：
+   JSON.stringify 生成带双引号的字符串字面量（单引号/换行等一并转义），
+   再把双引号转成实体以免提前终止属性值；尖括号转 \\u003c 防截断脚本块。 */
+function jsAttr(s){return JSON.stringify(String(s==null?'':s)).replace(/</g,'\\u003c').replace(/"/g,'&quot;')}
 /* 老旧 WebView / 无 scrollIntoView 的环境下兜底，避免整段交互中断 */
 function scrollInto(el,opt){if(el&&typeof el.scrollIntoView==='function')el.scrollIntoView(opt||{behavior:'smooth'})}
 function scrollTop(){try{window.scrollTo({top:0})}catch(e){try{window.scrollTo(0,0)}catch(e2){}}}
@@ -471,9 +475,9 @@ function renderList(){
     var img=r.image_url?'<img src="'+esc(r.image_url)+'" loading="lazy" decoding="async" onerror="this.style.display=\'none\'">':'';
     var tags=(r.tags||'').split('、').filter(Boolean).map(function(t){return ' · '+t}).join('');
     var fav=isFav(r.tid);
-    return '<div class="card" onclick="openDetail(\''+r.tid+'\')">'
+    return '<div class="card" onclick="openDetail('+jsAttr(r.tid)+')">'
       +'<div class="thumb">'+srcTag(r)+dropTag(r)
-      +'<span class="favheart'+(fav?' on':'')+'" onclick="toggleFav(\''+r.tid+'\',event)">'+(fav?'❤':'♡')+'</span>'
+      +'<span class="favheart'+(fav?' on':'')+'" onclick="toggleFav('+jsAttr(r.tid)+',event)">'+(fav?'❤':'♡')+'</span>'
       +img+'</div>'
       +'<div class="body"><div class="t">'+esc(r.title)+'</div>'
       +'<div class="meta">'+esc((r.brand||'')+(r.location?' · '+r.location:'')+tags)+'</div>'
@@ -509,6 +513,7 @@ function renderSame(cur){
   var cm=cur.chassis_model,box=document.getElementById('sameBox');
   if(!cm){box.innerHTML='<div class="empty">该车未识别出底盘型号，无法聚合同款</div>';return}
   var arr=DATA.filter(function(r){return r.chassis_model===cm&&r.price!=null});
+  if(!arr.length){box.innerHTML='<div class="empty">同底盘车型暂无有效挂牌价，无法比价</div>';return}
   var ps=arr.map(function(x){return x.price});
   var min=Math.min.apply(null,ps),max=Math.max.apply(null,ps),avg=ps.reduce(function(s,x){return s+x},0)/ps.length;
   var head='<div class="count">同底盘「'+esc(cm)+'」共 '+arr.length+' 台 · 最低 ¥'+min.toFixed(1)+'万 / 均价 ¥'+avg.toFixed(1)+'万 / 最高 ¥'+max.toFixed(1)+'万</div>';
@@ -517,7 +522,7 @@ function renderSame(cur){
     // 手机：宽表换成卡片，避免 7 列表格横向拖动
     box.innerHTML=head+'<div class="tapnote">点卡片可直接切到该车详情</div>'+sorted.map(function(x){
       var isCur=x.tid===cur.tid;
-      return '<div class="rowcard'+(isCur?' cur':'')+'"'+(isCur?'':' onclick="openDetail(\''+x.tid+'\')"')+'>'
+      return '<div class="rowcard'+(isCur?' cur':'')+'"'+(isCur?'':' onclick="openDetail('+jsAttr(x.tid)+')"')+'>'
         +'<div class="rc-top"><div class="rc-t">'+esc(x.title)+(isCur?' <span style="color:#e67e22">（当前）</span>':'')+'</div>'
         +'<div class="rc-p">'+x.price.toFixed(1)+'万</div></div>'
         +'<div class="rc-meta"><b>'+srcName(x.source)+'</b> · '+(rangeYear(x)||'-')+'年 · '+fmtM(x.mileage_km)
@@ -528,7 +533,7 @@ function renderSame(cur){
   var s='<tr><th>车源</th><th>来源</th><th>品牌</th><th>年份</th><th>里程</th><th>所在地</th><th>价格(万)</th></tr>';
   sorted.forEach(function(x){
     var cls=(x.tid===cur.tid)?' style="background:#fff3ec"':'';
-    var t=(x.tid===cur.tid)?esc(x.title)+'（当前）':'<a style="color:#1e3a5f" href="javascript:void(0)" onclick="openDetail(\''+x.tid+'\')">'+esc(x.title)+'</a>';
+    var t=(x.tid===cur.tid)?esc(x.title)+'（当前）':'<a style="color:#1e3a5f" href="javascript:void(0)" onclick="openDetail('+jsAttr(x.tid)+')">'+esc(x.title)+'</a>';
     s+='<tr'+cls+'><td>'+t+'</td><td>'+srcName(x.source)+'</td><td>'+esc(x.brand||'-')+'</td><td>'+(rangeYear(x)||'-')+'</td><td>'+fmtM(x.mileage_km)+'</td><td>'+esc(x.location||'-')+'</td><td style="white-space:nowrap">'+x.price.toFixed(1)+'万</td></tr>';
   });
   box.innerHTML=head+'<div class="tblwrap"><table>'+s+'</table></div>';
@@ -559,13 +564,13 @@ function renderCompare(){
     var ys=a.map(rangeYear).filter(Boolean),mn=ys.length?Math.min.apply(null,ys):0,mx=ys.length?Math.max.apply(null,ys):0;
     if(isNarrow()){
       // 手机：一行一台车型，价格区间代替 4 个价格列
-      rows+='<div class="rowcard" onclick="openCmpGroup(\''+esc(m).replace(/'/g,"\\'")+'\')">'
+      rows+='<div class="rowcard" onclick="openCmpGroup('+jsAttr(m)+')">'
         +'<div class="rc-top"><div class="rc-t">'+esc(m)+' <span style="color:var(--muted);font-weight:400">· '+Object.keys(srcs).length+' 源</span></div>'
         +'<div class="rc-p">'+ps[0].toFixed(1)+'–'+ps[ps.length-1].toFixed(1)+'万</div></div>'
         +'<div class="rc-meta">'+a.length+' 台在售 · 均价 '+avg.toFixed(1)+'万 · 中位 '+median(ps).toFixed(1)+'万'
         +(mn?' · '+(mn===mx?mn:mn+'-'+mx)+'年':'')+'</div></div>';
     }else{
-      rows+='<tr><td style="font-weight:600"><a href="javascript:void(0)" onclick="openCmpGroup(\''+m.replace(/'/g,'\\\'')+'\')">'+esc(m)+'</a></td><td>'+a.length+'</td><td>'+(Object.keys(srcs).length)+'</td><td>'+(mn?mn+'-'+mx:'-')+'</td><td>'+ps[0].toFixed(1)+'</td><td>'+avg.toFixed(1)+'</td><td>'+median(ps).toFixed(1)+'</td><td>'+ps[ps.length-1].toFixed(1)+'</td></tr>';
+      rows+='<tr><td style="font-weight:600"><a href="javascript:void(0)" onclick="openCmpGroup('+jsAttr(m)+')">'+esc(m)+'</a></td><td>'+a.length+'</td><td>'+(Object.keys(srcs).length)+'</td><td>'+(mn?mn+'-'+mx:'-')+'</td><td>'+ps[0].toFixed(1)+'</td><td>'+avg.toFixed(1)+'</td><td>'+median(ps).toFixed(1)+'</td><td>'+ps[ps.length-1].toFixed(1)+'</td></tr>';
     }
   });
   html+=isNarrow()?rows
@@ -588,7 +593,15 @@ function renderCmpDetail(){
   var ys=Array.from(new Set(arr.map(rangeYear).filter(Boolean))).sort(function(a,b){return b-a});
   var keep=function(r){return (!cmpG.cbrand||r.brand===cmpG.cbrand)&&(!cmpG.cyear||rangeYear(r)===+cmpG.cyear)};
   var list=arr.filter(keep);
-  var ps=list.map(function(r){return r.price});
+  var ps=list.map(function(r){return r.price}).filter(function(p){return p!=null});
+  var withP=list.filter(function(r){return r.price!=null});
+  if(!withP.length){
+    document.getElementById('viewCompare').innerHTML=
+      '<a class="back" href="javascript:void(0)" onclick="backCmp()">← 全部车型</a>'
+      +'<div class="panel"><h2>「'+esc(m)+'」同款比对</h2>'
+      +'<div class="empty">该筛选条件下暂无有效挂牌价的车源</div></div>';
+    return;
+  }
   if(ps.length){ps.sort(function(a,b){return a-b});}
   var min=ps.length?ps[0]:0,max=ps.length?ps[ps.length-1]:0,avg=ps.length?ps.reduce(function(s,p){return s+p},0)/ps.length:0,med=median(ps);
   // 年份价格分布柱状
@@ -623,7 +636,7 @@ function renderCmpDetail(){
     html+='<div class="tapnote">勾选 2–3 台，再点右下「对比选中」</div>';
     html+=out.map(function(x){var hl=x.price===min;
       return '<div class="rowcard'+(hl?' cur':'')+'"><div class="rc-check">'
-        +'<input type="checkbox" class="cmpchk" data-tid="'+x.tid+'" onchange="toggleCmp(\''+x.tid+'\',this)">'
+        +'<input type="checkbox" class="cmpchk" data-tid="'+esc(x.tid)+'" onchange="toggleCmp('+jsAttr(x.tid)+',this)">'
         +'<div style="flex:1;min-width:0">'
         +'<div class="rc-top"><div class="rc-t">'+esc(x.title)+'</div><div class="rc-p">'+x.price.toFixed(1)+'万</div></div>'
         +'<div class="rc-meta">'+(rangeYear(x)||'-')+'年 · '+fmtM(x.mileage_km)+' · '+esc(x.location||'-')
@@ -634,7 +647,7 @@ function renderCmpDetail(){
   }else{
     html+='<div class="tblwrap"><table><tr><th></th><th>年份</th><th>上装品牌</th><th>里程</th><th>所在地</th><th>价格(万)</th></tr>';
     out.forEach(function(x){var hl=x.price===min?' style="background:#fff3ec"':'';
-      html+='<tr'+hl+'><td><input type="checkbox" class="cmpchk" data-tid="'+x.tid+'" onchange="toggleCmp(\''+x.tid+'\',this)"></td><td>'+(rangeYear(x)||'-')+'</td><td>'+esc(x.title)+'</td><td>'+fmtM(x.mileage_km)+'</td><td>'+esc(x.location||'-')+'</td><td style="white-space:nowrap;color:#d23b2e">'+x.price.toFixed(1)+'</td></tr>';
+      html+='<tr'+hl+'><td><input type="checkbox" class="cmpchk" data-tid="'+esc(x.tid)+'" onchange="toggleCmp('+jsAttr(x.tid)+',this)"></td><td>'+(rangeYear(x)||'-')+'</td><td>'+esc(x.title)+'</td><td>'+fmtM(x.mileage_km)+'</td><td>'+esc(x.location||'-')+'</td><td style="white-space:nowrap;color:#d23b2e">'+x.price.toFixed(1)+'</td></tr>';
     });
     html+='</table></div>'
       +'<div class="count" style="margin-top:8px">勾选 2–3 台点击下方「对比选中」，可逐项并排查看</div>';
@@ -652,7 +665,7 @@ function toggleCmp(tid,el){
 function openCmpBox(){
   if(cmpSel.length<1)return;
   var list=cmpSel.map(function(t){return DATA.find(function(x){return x.tid===t})}).filter(Boolean);
-  var rows=[['来源',function(r){return srcName(r.source)}],['车源',function(r){return r.title}],['上装品牌',function(r){return r.brand||'-'}],['底盘型号',function(r){return r.chassis_model||'-'}],['年份',function(r){return rangeYear(r)||'-'}],['里程',function(r){return fmtM(r.mileage_km)}],['排放',function(r){return r.emission||'-'}],['过户',function(r){return r.transfer_count||'-'}],['类型',function(r){return r.rv_type||'-'}],['所在地',function(r){return r.location||'-'}],['价格',function(r){return '¥'+r.price.toFixed(1)+'万'}]];
+  var rows=[['来源',function(r){return srcName(r.source)}],['车源',function(r){return r.title}],['上装品牌',function(r){return r.brand||'-'}],['底盘型号',function(r){return r.chassis_model||'-'}],['年份',function(r){return rangeYear(r)||'-'}],['里程',function(r){return fmtM(r.mileage_km)}],['排放',function(r){return r.emission||'-'}],['过户',function(r){return r.transfer_count||'-'}],['类型',function(r){return r.rv_type||'-'}],['所在地',function(r){return r.location||'-'}],['价格',function(r){return fmtP(r.price)}]];
   var h;
   if(isNarrow()){
     // 手机：每台车一张卡，逐项列出，避免横向拖 4 列表格

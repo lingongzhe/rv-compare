@@ -103,6 +103,25 @@ def _migrate(conn):
     conn.execute(
         "UPDATE vehicles SET first_seen=COALESCE(fetched_at, datetime('now','localtime')) "
         "WHERE first_seen IS NULL OR first_seen=''")
+    _fix_price_units(conn)
+
+
+def _fix_price_units(conn):
+    """一次性修正"元/万元"混用（幂等，修完后再次运行不再有命中）。
+
+    2026-09 排查发现 21rv 源约 16 条挂牌价与新车价按"元"入库（如 218000），
+    与其余"万元"口径（如 11.0）混在一起，导致均价、比价、价格筛选、降价榜全部失真。
+    实测两套口径有清晰断层（万元口径最大 300，元口径最小 20000），
+    故 price>1000 一律 /10000。crawl_21rv.clean_price 已同步加了归一化，
+    此处负责把历史脏数据（含 price_history）一并洗掉。
+    0/负数是源站占位值（"0 元"面议），置 NULL 让前端显示"面议"。
+    """
+    conn.execute("UPDATE vehicles SET price=price/10000.0 WHERE price>1000")
+    conn.execute("UPDATE vehicles SET new_price=new_price/10000.0 WHERE new_price>1000")
+    conn.execute("UPDATE price_history SET price=price/10000.0 WHERE price>1000")
+    conn.execute("UPDATE vehicles SET price=NULL WHERE price<=0")
+    conn.execute("UPDATE vehicles SET new_price=NULL WHERE new_price<=0")
+    conn.execute("DELETE FROM price_history WHERE price<=0")
 
 
 def vehicle_exists(tid):

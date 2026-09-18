@@ -22,7 +22,7 @@
     <div class="body">
       <a href="/vehicle/{{ r['tid'] }}">
         <h3>{{ r['title'] or '（无标题）' }}</h3>
-        <div class="meta">{{ r['reg_year'] or '?' }}年上牌 · {{ r['mileage_km']|fmt_mileage }}公里 · {{ r['location'] or '-' }}</div>
+        <div class="meta">{{ r['reg_year'] or '?' }}年上牌 · {{ r['mileage_km']|fmt_mileage or '里程未知' }} · {{ r['location'] or '-' }}</div>
         <div class="price-row">
           <span class="price">{{ r['price']|fmt_price }}<small> 万</small>
             <span class="was">原 {{ r['old_price']|fmt_price }}万</span>

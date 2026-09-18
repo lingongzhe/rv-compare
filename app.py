@@ -82,9 +82,10 @@ def fmt_price(v):
 
 @app.template_filter("fmt_mileage")
 def fmt_mileage(v):
+    """自带单位的里程文本；无数据返回空串，模板里不再拼出“-公里”"""
     if v is None:
-        return "-"
-    return f"{v/10000:.1f}万" if v >= 10000 else f"{v}"
+        return ""
+    return f"{v/10000:.1f}万公里" if v >= 10000 else f"{v}公里"
 
 
 @app.template_filter("specs_from_json")

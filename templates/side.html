@@ -18,10 +18,10 @@
     </tr></thead>
     <tbody>
       <tr><th>挂牌价</th>
-        {% set prices = rows|map(attribute='price')|list %}
+        {% set prices = rows|map(attribute='price')|select|list %}
         {% for r in rows %}
-        <td style="color:var(--danger); font-weight:bold; font-size:16px;">{{ r['price']|fmt_price }} 万
-          {% if r['price'] and r['price'] == prices|min and prices|max != prices|min %}<span class="tag drop">最低</span>{% endif %}</td>
+        <td style="color:var(--danger); font-weight:bold; font-size:16px;">{% if r['price'] %}{{ '%.1f'|format(r['price']) }} 万{% else %}面议{% endif %}
+          {% if r['price'] and prices|length > 1 and r['price'] == prices|min() and prices|max() != prices|min() %}<span class="tag drop">最低</span>{% endif %}</td>
         {% endfor %}</tr>
       {% if rows|selectattr('new_price')|list %}
       <tr><th>新车含税价</th>{% for r in rows %}<td>{{ r['new_price'] or '-' }}</td>{% endfor %}</tr>

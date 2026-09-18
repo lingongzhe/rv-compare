@@ -2,8 +2,10 @@
 """舒旅二手房车网（cn2rv.com）爬虫
 
 数据源：舒旅二手房车网（专注二手房车的直卖平台）
-   列表  GET https://www.cn2rv.com/buycar/list 及 /buycar/list-ob{n} 各品牌分类页
+   列表  GET https://www.cn2rv.com/buycar/?page={n}   # 24 条/页，翻到空页为止
    详情  GET https://www.cn2rv.com/cars/{id}
+注意：2026-09 站点改版，旧列表入口 /buycar/list 与 /buycar/list-ob{1..160}
+      已失效（前者返回首页壳、后者渲染空列表），爬虫已切换到分页式新入口。
 无需反爬绕行即可访问；详情字段以上牌时间/公里数/所在地/排放标准等成对标签呈现。
 与房车猫/21世纪房车共库存储，tid 加 "cn2rv_" 前缀命名空间化避免撞主键，
 底盘型号复用 crawl_21rv 的规范化规则，可与 21rv/房车猫 同款聚合到同一比价组。
@@ -27,7 +29,8 @@ import database
 from crawl_21rv import norm_chassis, _marge_brand, infer_rv_type
 
 BASE = "https://www.cn2rv.com"
-LIST_URL = BASE + "/buycar/list"
+LIST_URL = BASE + "/buycar/"          # 分页式主列表：?page=1,2,...（24 条/页）
+LIST_MAX_PAGES = 40                   # 兜底，防止源站分页异常导致死循环
 DETAIL_URL = BASE + "/cars/{cid}"
 SOURCE = "cn2rv"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
@@ -39,7 +42,7 @@ def make_session():
     s.headers.update({
         "User-Agent": UA,
         "Accept-Language": "zh-CN,zh;q=0.9",
-        "Referer": BASE + "/buycar/list",
+        "Referer": BASE + "/buycar/",
     })
     return s
 
@@ -68,11 +71,19 @@ def get_html(session, url):
 # ---------------- 列表 ----------------
 
 def _link_items(html):
-    """从一页列表HTML里提取 (car_id, title)"""
+    """从一页列表HTML里提取 {car_id: title}
+
+    新版卡片结构：<a href="/cars/{id}" class="dui-car-cells">
+        <h4 class="car-title">标题</h4> <p class="car-desc">上牌 / 里程 / 城市</p>
+        <p class="price">14.8<span class="unit">万</span></p> ...
+    标题优先取 h4.car-title，避免把描述与价格拼进标题；兼容锚内纯文本的旧结构。
+    """
     out = {}
-    for mm in re.finditer(r'href="/cars/(\d+)"[^>]*>(.*?)</a>', html, re.S):
-        cid = mm.group(1)
-        title = re.sub(r"<[^>]+>", "", mm.group(2)).strip()
+    for mm in re.finditer(r'<a[^>]+href="/cars/(\d+)"[^>]*>(.*?)</a>', html, re.S):
+        cid, inner = mm.group(1), mm.group(2)
+        tm = re.search(r'<h4[^>]*class="[^"]*car-title[^"]*"[^>]*>(.*?)</h4>', inner, re.S)
+        title = tm.group(1) if tm else inner
+        title = re.sub(r"<[^>]+>", "", title).strip()
         title = re.sub(r"\s+", " ", title)
         if title:
             out[cid] = title
@@ -80,14 +91,19 @@ def _link_items(html):
 
 
 def crawl_list(session):
-    """收集主列表 + 各分类页，去重得到 {cid: title}"""
+    """翻主列表分页（/buycar/?page=N，24 条/页），去重得到 {cid: title}
+
+    2026-09 站点改版：旧 /buycar/list 与 /buycar/list-ob{1..160} 已失效
+    （前者返回首页壳、后者渲染空列表），新列表为分页式，翻到空页结束。
+    """
     seen = {}
-    # 主列表 + 各上装品牌分类页（ob id 1..160 覆盖全部品类）
-    urls = [LIST_URL] + [f"{BASE}/buycar/list-ob{n}" for n in range(1, 161)]
-    for i, u in enumerate(urls, 1):
-        html = get_html(session, u)
+    page = 1
+    while page <= LIST_MAX_PAGES:
+        url = f"{LIST_URL}?page={page}"
+        html = get_html(session, url)
         if html is None:
             polite_sleep(1, 2)
+            page += 1
             continue
         items = _link_items(html)
         added = 0
@@ -95,8 +111,12 @@ def crawl_list(session):
             if cid not in seen:
                 seen[cid] = title
                 added += 1
-        print(f"[列表 {i}/{len(urls)}] {u.split('/buycar')[-1]} 车源{len(items)} 新增{added} 累计{len(seen)}")
+        print(f"[列表 {page}/{LIST_MAX_PAGES}] {url} 车源{len(items)} 新增{added} 累计{len(seen)}")
+        if not items:
+            print("   空页，列表翻页结束")
+            break
         polite_sleep()
+        page += 1
     return seen
 
 

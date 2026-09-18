@@ -9,7 +9,7 @@
     {% endif %}
     <h2 style="font-size:20px; margin-bottom:10px;">{{ v['title'] or '（无标题）' }}</h2>
     <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:12px;">
-      <span style="color:var(--danger); font-size:34px; font-weight:bold;">{{ v['price']|fmt_price }}<small style="font-size:15px;"> 万</small></span>
+      <span style="color:var(--danger); font-size:34px; font-weight:bold;">{% if v['price'] %}{{ '%.1f'|format(v['price']) }}<small style="font-size:15px;"> 万</small>{% else %}<small style="font-size:22px;">面议</small>{% endif %}</span>
       {% if v['new_price'] %}<span class="muted">新车含税价约 {{ v['new_price'] }} 万</span>{% endif %}
       <span class="tag" style="background:{{ source_color(v['source']) }}; font-size:12px; padding:3px 10px;">{{ source_name(v['source']) }}</span>
     </div>
@@ -85,9 +85,9 @@
       {% for r in similar %}
       <a href="/vehicle/{{ r['tid'] }}" style="display:flex; justify-content:space-between; padding:9px 0; border-bottom:1px solid var(--line); font-size:13px;">
         <span style="flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-right:10px;">
-          {{ r['title'] }}<br><span class="muted" style="font-size:12px;">{{ r['reg_year'] or '?' }}年 · {{ r['mileage_km']|fmt_mileage }}公里 · {{ source_name(r['source']) }}</span>
+          {{ r['title'] }}<br><span class="muted" style="font-size:12px;">{{ r['reg_year'] or '?' }}年 · {{ r['mileage_km']|fmt_mileage or '里程未知' }} · {{ source_name(r['source']) }}</span>
         </span>
-        <b style="color:var(--danger); flex-shrink:0;">{{ r['price']|fmt_price }}万</b>
+        <b style="color:var(--danger); flex-shrink:0;">{% if r['price'] %}{{ '%.1f'|format(r['price']) }}万{% else %}面议{% endif %}</b>
       </a>
       {% endfor %}
     </div>

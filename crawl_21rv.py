@@ -39,7 +39,9 @@ RV_DELAY = float(os.environ.get("RV_CRAWL_DELAY", "0") or 0)
 API_BASE = "https://api.wanfangche.com"
 LIST_URL = API_BASE + "/community/public/fc/rvSecond/list"
 DETAIL_URL = API_BASE + "/community/public/fc/rvSecond/detail"
-PAGE_SIZE = 100          # 列表接口实测可返回 100 条/页
+# 底盘: size=100 自 2026-09 起源端明显劣化（实测 37s+ 或直接挂起超时），
+# size<=20 稳定在 2~5s；全量盘点改为约 161 次小请求，慢一点但跑得完。
+PAGE_SIZE = 20            # 列表接口每页条数（上游劣化前的旧默认是 100）
 SOURCE = "21rv"
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36")
@@ -69,42 +71,51 @@ def get_json(session, url, params):
 
     以前这里只判断 HTTP 状态码，业务错误会被当成"空页"静默跳过，
     导致源站改接口后爬虫"看起来跑完了、其实一条没抓到"。
+
+    2026-09 实测：api.wanfangche.com 偶发连接挂起（>30s 无响应，随后自愈），
+    表现为整轮"接口不可用"。故重试提高到 5 次并做指数退避（1s 起、封顶 10s），
+    超时 30s，偶发慢响应不再让体检/抓取整轮失败。
     """
     last_err = None
-    for attempt in range(3):
+    for attempt in range(5):
         try:
             r = session.get(url, params=params, timeout=30)
         except requests.RequestException as e:
             last_err = f"{e.__class__.__name__}: {e}"
-            print(f"   ! 请求异常（{e.__class__.__name__}），第 {attempt + 1} 次重试")
-            polite_sleep(1, 2)
+            print(f"   ! 请求异常（{e.__class__.__name__}），第 {attempt + 1}/5 次重试")
+            _retry_wait(attempt)
             continue
         if r.status_code != 200:
             last_err = f"HTTP {r.status_code}"
             print(f"   ! {last_err}: {url}?{urlencode(params)[:80]}")
-            polite_sleep(1, 2)
+            _retry_wait(attempt)
             continue
         try:
             j = r.json()
         except ValueError:
             last_err = "非法 JSON"
-            print(f"   ! {last_err}，第 {attempt + 1} 次重试")
-            polite_sleep(1, 2)
+            print(f"   ! {last_err}，第 {attempt + 1}/5 次重试")
+            _retry_wait(attempt)
             continue
         if not isinstance(j, dict):
             last_err = f"响应结构异常（{type(j).__name__}）"
             print(f"   ! {last_err}")
-            polite_sleep(1, 2)
+            _retry_wait(attempt)
             continue
         # 业务层校验：成功响应形如 {"msg":"操作成功","data":{...}}
         if j.get("err") or (j.get("data") is None and j.get("msg") != "操作成功"):
             last_err = f"接口业务错误：{j.get('msg') or ''} {j.get('err') or ''}".strip()
             print(f"   ! {last_err}")
-            polite_sleep(1, 2)
+            _retry_wait(attempt)
             continue
         return j
     print(f"   × 放弃该请求（{last_err}）")
     return None
+
+
+def _retry_wait(attempt):
+    """重试前的指数退避：1s / 2s / 4s / 8s（封顶 10s）+ 随机抖动"""
+    time.sleep(min(10, 2 ** attempt) + random.uniform(0, 1))
 
 
 def polite_sleep(lo=0.4, hi=1.0):
@@ -117,11 +128,28 @@ def polite_sleep(lo=0.4, hi=1.0):
 # ---------------- 数值/文本解析 ----------------
 
 def clean_price(s):
-    """把 '¥11.00' / 11 / '38.8' 解析为万元数值"""
+    """把 '¥11.00' / 11 / '38.8' 解析为万元数值
+
+    2026-09 实测：源站大部分记录以"万元"为单位（如 11.0），但混有少量以"元"
+    为单位的记录（如 218000），接口不带单位字段。实测两套口径之间存在清晰断层
+    （万元口径最大 300，元口径最小 20000），因此：数值 >1000 时先按"元"换算，
+    换算结果落在合理区间（≥0.5 万）才采纳，否则保留原值当万元处理
+    ——这样即便真有一台 1100 万的房车（1100 万 → 0.11 万 不合理）也不会被误伤。
+    0/负数视为无效价（源站偶发 0 元占位），返回 None 让前端显示"面议"。
+    """
     if s in (None, ""):
         return None
     m = re.search(r"[\d.]+", str(s).replace(",", ""))
-    return float(m.group()) if m else None
+    if not m:
+        return None
+    v = float(m.group())
+    if v <= 0:
+        return None
+    if v > 1000:
+        w = v / 10000
+        if w >= 0.5:
+            return w
+    return v
 
 
 def clean_posted_at(s):
